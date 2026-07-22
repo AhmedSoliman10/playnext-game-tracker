@@ -1,0 +1,8 @@
+.next
+node_modules
+.playnext-data
+test-results
+playwright-report
+coverage
+package-lock.json
+*.tsbuildinfo
