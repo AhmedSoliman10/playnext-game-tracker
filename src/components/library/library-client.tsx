@@ -101,11 +101,12 @@ export function LibraryClient({
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-          {filtered.map((entry) => (
+          {filtered.map((entry, index) => (
             <GameCard
               key={entry.game.slug}
               game={entry.game}
               entry={entry}
+              priority={index < 4}
               onChanged={updateEntry}
               onRemoved={removeEntry}
               onPlayed={() => setRatingGame(entry.game)}

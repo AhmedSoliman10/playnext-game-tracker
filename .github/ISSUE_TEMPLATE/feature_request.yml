@@ -1,0 +1,36 @@
+name: Feature request
+description: Suggest an improvement for PlayNext
+title: "Feature: "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or opportunity
+      description: What user problem should this solve?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: Describe the behavior or UI you want.
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Product area
+      options:
+        - Discovery
+        - Ratings
+        - Library
+        - Search
+        - Recommendations
+        - Dashboard/Profile
+        - Authentication
+        - Developer experience
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered

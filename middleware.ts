@@ -1,9 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { type NextRequest, NextResponse } from "next/server";
-import {
-  DEMO_SESSION_COOKIE,
-  decodeDemoSession,
-} from "@/lib/auth/demo-session";
+
+const DEMO_SESSION_COOKIE = "playnext_demo_user";
 
 const protectedPrefixes = [
   "/dashboard",
@@ -26,6 +24,21 @@ function isSupabaseConfigured() {
   );
 }
 
+function hasDemoSession(value?: string | null) {
+  if (!value) {
+    return false;
+  }
+
+  try {
+    const parsed = JSON.parse(decodeURIComponent(value)) as {
+      userId?: string;
+    };
+    return Boolean(parsed.userId?.startsWith("demo:"));
+  } catch {
+    return false;
+  }
+}
+
 export async function middleware(request: NextRequest) {
   const isProtected = protectedPrefixes.some((prefix) =>
     request.nextUrl.pathname.startsWith(prefix),
@@ -35,10 +48,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const demoUser = decodeDemoSession(
-    request.cookies.get(DEMO_SESSION_COOKIE)?.value,
-  );
-  if (demoUser) {
+  if (hasDemoSession(request.cookies.get(DEMO_SESSION_COOKIE)?.value)) {
     return NextResponse.next();
   }
 

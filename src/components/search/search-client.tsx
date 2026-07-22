@@ -362,11 +362,12 @@ export function SearchClient({
       ) : filteredGames.length ? (
         <>
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-            {filteredGames.map((game) => (
+            {filteredGames.map((game, index) => (
               <GameCard
                 key={game.slug}
                 game={game}
                 entry={entriesBySlug.get(game.slug)}
+                priority={index < 4}
                 onChanged={(entry) => {
                   setEntriesBySlug((current) => {
                     const next = new Map(current);

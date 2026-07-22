@@ -23,7 +23,13 @@ test("critical game tracking journey works with keyboard-accessible discovery", 
     .first()
     .innerText();
 
+  const playedResponse = page.waitForResponse(
+    (response) =>
+      response.url().includes("/api/user-games") &&
+      response.request().method() === "POST",
+  );
   await page.getByRole("button", { name: "Yes, I played it" }).click();
+  expect((await playedResponse).ok()).toBe(true);
   await expect(page.getByRole("dialog")).toBeVisible();
   await expect(
     page.locator("[data-testid='discovery-card'] h2").first(),

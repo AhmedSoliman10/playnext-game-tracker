@@ -1,0 +1,30 @@
+<svg width="1280" height="640" viewBox="0 0 1280 640" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">PlayNext social preview</title>
+  <desc id="desc">Dark gaming interface preview with cover cards, ratings, and the PlayNext tagline.</desc>
+  <rect width="1280" height="640" fill="#09090b"/>
+  <rect x="48" y="48" width="1184" height="544" rx="28" fill="#121417" stroke="#2a2f35" stroke-width="2"/>
+  <path d="M72 516C206 392 288 410 390 300C494 188 600 142 746 178C876 210 958 148 1208 74V592H72V516Z" fill="#18211d"/>
+  <path d="M72 540C246 428 342 468 462 364C596 248 724 250 872 296C1010 338 1096 272 1208 212V592H72V540Z" fill="#102329"/>
+  <rect x="86" y="88" width="306" height="420" rx="18" fill="#181b20" stroke="#303740"/>
+  <rect x="110" y="116" width="258" height="338" rx="14" fill="#20252d"/>
+  <rect x="130" y="136" width="218" height="298" rx="10" fill="#262d37"/>
+  <path d="M130 340L212 254L270 314L316 270L348 304V434H130V340Z" fill="#38bdf8" opacity=".24"/>
+  <circle cx="190" cy="198" r="46" fill="#84cc16" opacity=".45"/>
+  <rect x="130" y="466" width="160" height="14" rx="7" fill="#e5e7eb"/>
+  <rect x="130" y="488" width="110" height="10" rx="5" fill="#71717a"/>
+  <rect x="440" y="118" width="690" height="404" rx="20" fill="#15181d" stroke="#303740"/>
+  <text x="480" y="188" fill="#f8fafc" font-family="Inter, Arial, sans-serif" font-size="76" font-weight="900">PlayNext</text>
+  <text x="482" y="236" fill="#a7f3d0" font-family="Inter, Arial, sans-serif" font-size="26" font-weight="700">Rate what you played. Organize your backlog.</text>
+  <text x="482" y="272" fill="#a7f3d0" font-family="Inter, Arial, sans-serif" font-size="26" font-weight="700">Discover what comes next.</text>
+  <rect x="482" y="326" width="170" height="52" rx="14" fill="#34d399"/>
+  <text x="514" y="360" fill="#062014" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="800">Played 8.5</text>
+  <rect x="668" y="326" width="172" height="52" rx="14" fill="#1f2937" stroke="#3f4652"/>
+  <text x="704" y="360" fill="#f8fafc" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="800">Backlog</text>
+  <rect x="856" y="326" width="178" height="52" rx="14" fill="#1f2937" stroke="#3f4652"/>
+  <text x="894" y="360" fill="#f8fafc" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="800">Discover</text>
+  <rect x="482" y="420" width="584" height="54" rx="14" fill="#0d1117" stroke="#2f3742"/>
+  <rect x="506" y="440" width="210" height="14" rx="7" fill="#38bdf8"/>
+  <rect x="734" y="440" width="136" height="14" rx="7" fill="#84cc16"/>
+  <rect x="890" y="440" width="128" height="14" rx="7" fill="#f472b6"/>
+  <text x="86" y="552" fill="#71717a" font-family="Inter, Arial, sans-serif" font-size="18" font-weight="700">Open source game tracking with Next.js, Supabase, and IGDB</text>
+</svg>

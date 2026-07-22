@@ -68,9 +68,9 @@ export default async function DashboardPage() {
           </div>
           {recommendations.length ? (
             <div className="grid gap-4 lg:grid-cols-2">
-              {recommendations.map((recommendation) => (
+              {recommendations.map((recommendation, index) => (
                 <div key={recommendation.game.slug} className="space-y-2">
-                  <GameCard game={recommendation.game} />
+                  <GameCard game={recommendation.game} priority={index < 2} />
                   <p className="rounded-md border bg-zinc-950 px-3 py-2 text-sm text-zinc-300">
                     {recommendation.reasons[0]}
                   </p>
