@@ -100,18 +100,20 @@ const activeStatusLabels: Record<
   },
 };
 
-const statusBusyLabels: Record<GameStatus, { saving: string; removing: string }> =
-  {
-    played: { saving: "Saving played...", removing: "Removing played..." },
-    playing: { saving: "Saving playing...", removing: "Removing playing..." },
-    want_to_play: {
-      saving: "Saving backlog...",
-      removing: "Removing backlog...",
-    },
-    dropped: { saving: "Saving dropped...", removing: "Removing dropped..." },
-    not_interested: { saving: "Hiding game...", removing: "Unhiding game..." },
-    skipped: { saving: "Skipping game...", removing: "Removing skipped..." },
-  };
+const statusBusyLabels: Record<
+  GameStatus,
+  { saving: string; removing: string }
+> = {
+  played: { saving: "Saving played...", removing: "Removing played..." },
+  playing: { saving: "Saving playing...", removing: "Removing playing..." },
+  want_to_play: {
+    saving: "Saving backlog...",
+    removing: "Removing backlog...",
+  },
+  dropped: { saving: "Saving dropped...", removing: "Removing dropped..." },
+  not_interested: { saving: "Hiding game...", removing: "Unhiding game..." },
+  skipped: { saving: "Skipping game...", removing: "Removing skipped..." },
+};
 
 export function StatusButtons({
   gameSlug,
