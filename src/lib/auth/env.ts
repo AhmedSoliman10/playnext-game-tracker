@@ -1,5 +1,6 @@
 export const APP_URL =
   process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:8000";
+export const OAUTH_NEXT_COOKIE = "playnext_oauth_next";
 
 function normalizeOrigin(value: string) {
   try {
@@ -36,9 +37,11 @@ export function getAppOrigin(request?: Request) {
   return configuredOrigin;
 }
 
-export function getAuthCallbackUrl(request: Request, next = "/dashboard") {
+export function getAuthCallbackUrl(request: Request, next?: string | null) {
   const callbackUrl = new URL("/auth/callback", getAppOrigin(request));
-  callbackUrl.searchParams.set("next", next);
+  if (next) {
+    callbackUrl.searchParams.set("next", next);
+  }
   return callbackUrl.toString();
 }
 

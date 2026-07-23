@@ -12,6 +12,7 @@ import {
 import { clientRateLimitKey, errorResponse, readJson } from "@/lib/server/http";
 import { checkRateLimit } from "@/lib/server/rate-limit";
 import { createSupabaseRouteClient } from "@/lib/supabase/route";
+import { createSupabaseAdminClient } from "@/lib/supabase/server";
 import { signUpSchema } from "@/lib/validation/auth";
 
 function normalizeDisplayName(value: string) {
@@ -32,6 +33,29 @@ function isDisplayNameTakenError(error: { message: string }) {
     message.includes("duplicate key") ||
     message.includes("display_name_normalized")
   );
+}
+
+function displayNameTakenMessage() {
+  return "That display name is already taken. Capital letters do not make it unique, so choose a different name.";
+}
+
+async function isDisplayNameTaken(normalizedDisplayName: string) {
+  const admin = createSupabaseAdminClient();
+  if (!admin) {
+    return null;
+  }
+
+  const { data, error } = await admin
+    .from("profiles")
+    .select("id")
+    .eq("display_name_normalized", normalizedDisplayName)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error("Could not check display name availability.");
+  }
+
+  return Boolean(data);
 }
 
 export async function POST(request: NextRequest) {
@@ -70,32 +94,17 @@ export async function POST(request: NextRequest) {
       return response;
     }
 
-    const supabase = createSupabaseRouteClient(request, response);
     const normalizedDisplayName = normalizeDisplayName(input.displayName);
-    const { data: existingProfile, error: existingProfileError } =
-      await supabase!
-        .from("profiles")
-        .select("id")
-        .eq("display_name_normalized", normalizedDisplayName)
-        .maybeSingle();
+    const displayNameTaken = await isDisplayNameTaken(normalizedDisplayName);
 
-    if (existingProfileError) {
+    if (displayNameTaken) {
       return NextResponse.json(
-        { error: "Could not check display name availability." },
-        { status: 400 },
-      );
-    }
-
-    if (existingProfile) {
-      return NextResponse.json(
-        {
-          error:
-            "That display name is already taken. Capital letters do not make it unique, so choose a different name.",
-        },
+        { error: displayNameTakenMessage() },
         { status: 409 },
       );
     }
 
+    const supabase = createSupabaseRouteClient(request, response);
     const { data, error } = await supabase!.auth.signUp({
       email: input.email,
       password: input.password,
@@ -116,12 +125,12 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      if (isDisplayNameTakenError(error)) {
+      const takenAfterSignupError = await isDisplayNameTaken(
+        normalizedDisplayName,
+      );
+      if (isDisplayNameTakenError(error) || takenAfterSignupError) {
         return NextResponse.json(
-          {
-            error:
-              "That display name is already taken. Capital letters do not make it unique, so choose a different name.",
-          },
+          { error: displayNameTakenMessage() },
           { status: 409 },
         );
       }

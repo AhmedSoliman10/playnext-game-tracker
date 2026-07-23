@@ -3,6 +3,7 @@ import {
   getAuthCallbackUrl,
   getSafeNextPath,
   isSupabaseConfigured,
+  OAUTH_NEXT_COOKIE,
 } from "@/lib/auth/env";
 import { createSupabaseRouteClient } from "@/lib/supabase/route";
 
@@ -26,11 +27,18 @@ export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url);
   const next = getSafeNextPath(requestUrl.searchParams.get("next"));
   const fallbackResponse = loginErrorRedirect(request, "discord");
+  fallbackResponse.cookies.set(OAUTH_NEXT_COOKIE, next, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: requestUrl.protocol === "https:",
+    path: "/",
+    maxAge: 60 * 10,
+  });
   const supabase = createSupabaseRouteClient(request, fallbackResponse);
   const { data, error } = await supabase!.auth.signInWithOAuth({
     provider: "discord",
     options: {
-      redirectTo: getAuthCallbackUrl(request, next),
+      redirectTo: getAuthCallbackUrl(request),
     },
   });
 
