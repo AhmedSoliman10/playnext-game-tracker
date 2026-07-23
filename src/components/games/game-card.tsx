@@ -25,7 +25,7 @@ export function GameCard({
   onChanged?: (entry: LibraryEntry) => void;
   onRemoved?: (gameSlug: string) => void;
   onPlayed?: () => void;
-  onFavoriteSelected?: () => void;
+  onFavoriteSelected?: (entry: LibraryEntry) => void;
   priority?: boolean;
   removable?: boolean;
 }) {

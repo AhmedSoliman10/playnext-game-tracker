@@ -116,7 +116,11 @@ export function LibraryClient({
               onChanged={updateEntry}
               onRemoved={removeEntry}
               onPlayed={() => setRatingGame(entry.game)}
-              onFavoriteSelected={() => setRatingGame(entry.game)}
+              onFavoriteSelected={(updatedEntry) => {
+                if (!updatedEntry.rating) {
+                  setRatingGame(updatedEntry.game);
+                }
+              }}
               removable
             />
           ))}

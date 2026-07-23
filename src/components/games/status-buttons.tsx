@@ -134,7 +134,7 @@ export function StatusButtons({
   onChanged?: (entry: LibraryEntry) => void;
   onRemoved?: (gameSlug: string) => void;
   onPlayed?: () => void;
-  onFavoriteSelected?: () => void;
+  onFavoriteSelected?: (entry: LibraryEntry) => void;
 }) {
   const router = useRouter();
   const [busyStatus, setBusyStatus] = useState<
@@ -216,7 +216,7 @@ export function StatusButtons({
         router.refresh();
       }
       if (nextFavorite) {
-        onFavoriteSelected?.();
+        onFavoriteSelected?.(payload.entry);
       }
     } catch (error) {
       setError(

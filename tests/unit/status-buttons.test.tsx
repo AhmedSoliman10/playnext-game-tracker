@@ -118,6 +118,11 @@ describe("StatusButtons", () => {
     );
 
     await waitFor(() => expect(onFavoriteSelected).toHaveBeenCalledOnce());
+    expect(onFavoriteSelected).toHaveBeenCalledWith(
+      expect.objectContaining({
+        game: expect.objectContaining({ slug: "hades" }),
+      }),
+    );
   });
 
   it("keeps inactive status buttons neutral until a status is selected", () => {
