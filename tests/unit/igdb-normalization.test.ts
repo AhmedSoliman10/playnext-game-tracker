@@ -3,6 +3,7 @@ import {
   getIgdbSearchQueries,
   igdbGameSchema,
   normalizeIgdbGame,
+  rankPopularityPrimitiveGameIds,
 } from "@/lib/games/igdb-provider";
 
 describe("IGDB normalization", () => {
@@ -52,6 +53,21 @@ describe("IGDB normalization", () => {
 
   it("adds spelling-tolerant search fallbacks for common title mistakes", () => {
     expect(getIgdbSearchQueries("dinner dash")).toContain("diner dash");
+  });
+
+  it("combines IGDB and Steam popularity primitives without letting one scale dominate", () => {
+    const rankedIds = rankPopularityPrimitiveGameIds(
+      [
+        { game_id: 10, popularity_type: 5, value: 200000 },
+        { game_id: 20, popularity_type: 5, value: 100000 },
+        { game_id: 20, popularity_type: 3, value: 0.9 },
+        { game_id: 20, popularity_type: 2, value: 0.8 },
+        { game_id: 30, popularity_type: 1, value: 1 },
+      ],
+      3,
+    );
+
+    expect(rankedIds).toEqual([20, 10, 30]);
   });
 
   it("uses the preferred IGDB hero artwork for the landing featured Red Dead card", () => {

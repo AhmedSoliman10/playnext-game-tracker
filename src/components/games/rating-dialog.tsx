@@ -99,28 +99,52 @@ function RatingGrid({
   onSelect: (value: number | null) => void;
   ariaLabel: string;
 }) {
+  const [hoveredValue, setHoveredValue] = useState<number | null>(null);
+  const previewValue = hoveredValue ?? current ?? null;
+
   return (
-    <div
-      className="grid grid-cols-3 gap-2 sm:grid-cols-5"
-      role="radiogroup"
-      aria-label={ariaLabel}
-    >
-      {values.map((value) => (
-        <button
-          key={value}
-          type="button"
-          role="radio"
-          aria-checked={current === value}
-          onClick={() => onSelect(value)}
-          className={`h-12 rounded-md border text-sm font-semibold transition focus-visible:outline-2 ${
-            current === value
-              ? "border-lime-300 bg-lime-300 text-zinc-950"
-              : "bg-zinc-950 text-zinc-200 hover:border-lime-300"
-          }`}
-        >
-          {value}
-        </button>
-      ))}
+    <div className="space-y-3">
+      <div className="flex items-center justify-between gap-3 rounded-md border border-zinc-800 bg-zinc-950/70 px-3 py-2">
+        <p className="text-sm font-semibold text-zinc-300">
+          {hoveredValue ? "Preview" : current ? "Selected" : "Not selected"}
+        </p>
+        <p className="text-lg font-black text-lime-200" aria-live="polite">
+          {previewValue ? `${previewValue}/10` : "--"}
+        </p>
+      </div>
+      <div
+        className="grid grid-cols-3 gap-2 sm:grid-cols-5"
+        role="radiogroup"
+        aria-label={ariaLabel}
+        onMouseLeave={() => setHoveredValue(null)}
+      >
+        {values.map((value) => {
+          const selected = current === value;
+          const previewed = hoveredValue === value;
+
+          return (
+            <button
+              key={value}
+              type="button"
+              role="radio"
+              aria-checked={selected}
+              onMouseEnter={() => setHoveredValue(value)}
+              onFocus={() => setHoveredValue(value)}
+              onBlur={() => setHoveredValue(null)}
+              onClick={() => onSelect(value)}
+              className={`h-12 rounded-md border text-sm font-semibold transition focus-visible:outline-2 ${
+                selected
+                  ? "border-lime-300 bg-lime-300 text-zinc-950"
+                  : previewed
+                    ? "border-cyan-300 bg-cyan-300 text-zinc-950 shadow-[0_0_0_1px_rgba(103,232,249,0.45)]"
+                    : "bg-zinc-950 text-zinc-200 hover:border-cyan-300"
+              }`}
+            >
+              {value}
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -458,7 +482,7 @@ export function RatingDialog({
             </div>
 
             <div
-              className="mt-3 flex gap-2 overflow-x-auto pb-1"
+              className="scrollbar-hidden mt-3 flex gap-2 overflow-x-auto pb-1"
               aria-label="Rating steps"
             >
               {steps.map((item, index) => {

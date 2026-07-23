@@ -1,19 +1,69 @@
+"use client";
+
+import { useEffect, useRef } from "react";
 import Link from "next/link";
-import { Flame, Star } from "lucide-react";
+import { ChevronLeft, ChevronRight, Flame, Star } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { GameArtwork } from "@/components/games/game-artwork";
 import type { GameSummary } from "@/lib/games/types";
 import { getReleaseYear } from "@/lib/utils";
 
+const AUTO_ADVANCE_MS = 4200;
+
 export function PopularNowCarousel({
   games,
   title = "Popular right now",
-  description = "High-signal games from the live catalog and seeded fallback.",
+  description = "Live IGDB PopScore signals from visits, list activity, and Steam 24h peak players when available.",
 }: {
   games: GameSummary[];
   title?: string;
   description?: string;
 }) {
+  const railRef = useRef<HTMLDivElement>(null);
+  const pausedRef = useRef(false);
+
+  function scrollRail(direction: 1 | -1) {
+    const rail = railRef.current;
+    if (!rail) {
+      return;
+    }
+
+    const card = rail.querySelector<HTMLElement>("[data-carousel-card]");
+    const step = card ? card.offsetWidth + 16 : rail.clientWidth * 0.82;
+    const atEnd = rail.scrollLeft + rail.clientWidth >= rail.scrollWidth - 24;
+    const atStart = rail.scrollLeft <= 8;
+
+    if (direction === 1 && atEnd) {
+      rail.scrollTo({ left: 0, behavior: "smooth" });
+      return;
+    }
+
+    if (direction === -1 && atStart) {
+      rail.scrollTo({ left: rail.scrollWidth, behavior: "smooth" });
+      return;
+    }
+
+    rail.scrollBy({ left: direction * step, behavior: "smooth" });
+  }
+
+  useEffect(() => {
+    const reducedMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
+    if (reducedMotion || games.length < 2) {
+      return;
+    }
+
+    const interval = window.setInterval(() => {
+      if (!pausedRef.current) {
+        scrollRail(1);
+      }
+    }, AUTO_ADVANCE_MS);
+
+    return () => window.clearInterval(interval);
+  }, [games.length]);
+
   if (!games.length) {
     return null;
   }
@@ -33,19 +83,49 @@ export function PopularNowCarousel({
             {description}
           </p>
         </div>
-        <Link
-          href="/search?sort=external-rating"
-          className="text-sm font-semibold text-cyan-200 hover:text-cyan-100 focus-visible:outline-2"
-        >
-          Browse more
-        </Link>
+        <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            variant="secondary"
+            size="icon"
+            onClick={() => scrollRail(-1)}
+            aria-label="Previous popular game"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <Button
+            type="button"
+            variant="secondary"
+            size="icon"
+            onClick={() => scrollRail(1)}
+            aria-label="Next popular game"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
 
-      <div className="-mx-4 flex snap-x gap-4 overflow-x-auto px-4 pb-2 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
+      <div
+        ref={railRef}
+        className="scrollbar-hidden -mx-4 flex snap-x gap-4 overflow-x-auto scroll-smooth px-4 pb-2 [mask-image:linear-gradient(90deg,transparent,black_4%,black_96%,transparent)] sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8"
+        onPointerEnter={() => {
+          pausedRef.current = true;
+        }}
+        onPointerLeave={() => {
+          pausedRef.current = false;
+        }}
+        onFocusCapture={() => {
+          pausedRef.current = true;
+        }}
+        onBlurCapture={() => {
+          pausedRef.current = false;
+        }}
+      >
         {games.slice(0, 12).map((game, index) => (
           <Link
             key={game.slug}
             href={`/games/${game.slug}`}
+            data-carousel-card
             className="group relative flex min-h-80 w-72 shrink-0 snap-start overflow-hidden rounded-lg border bg-zinc-950 focus-visible:outline-2 sm:w-80"
           >
             <GameArtwork

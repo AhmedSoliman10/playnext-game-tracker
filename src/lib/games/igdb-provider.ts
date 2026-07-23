@@ -55,12 +55,23 @@ export const igdbGameSchema = igdbGameCoreSchema.extend({
 
 const igdbGamesResponseSchema = z.array(igdbGameSchema);
 
+const igdbPopularityPrimitiveSchema = z.object({
+  game_id: z.number().int(),
+  popularity_type: z.number().int(),
+  value: z.coerce.number(),
+});
+
+const igdbPopularityPrimitivesResponseSchema = z.array(
+  igdbPopularityPrimitiveSchema,
+);
+
 const twitchTokenSchema = z.object({
   access_token: z.string().min(1),
   expires_in: z.number().int().positive(),
 });
 
 type IgdbGame = z.infer<typeof igdbGameSchema>;
+type IgdbPopularityPrimitive = z.infer<typeof igdbPopularityPrimitiveSchema>;
 
 type IgdbImageSize =
   "cover_big_2x" | "screenshot_big" | "screenshot_huge" | "1080p";
@@ -168,6 +179,15 @@ const platformIdsByFilter: Record<string, number[]> = {
 
 const preferredHeroArtworkIdsBySlug: Record<string, string[]> = {
   "red-dead-redemption-2": ["ar3qmt"],
+};
+
+const trendingPopularityTypes = [5, 3, 2, 1, 4] as const;
+const trendingPopularityWeights: Record<number, number> = {
+  5: 1.35, // Steam 24hr peak players
+  3: 1.2, // IGDB Playing
+  2: 0.95, // IGDB Want to Play
+  1: 0.8, // IGDB Visits
+  4: 0.45, // IGDB Played
 };
 
 function cacheKey(endpoint: string, body: string) {
@@ -350,6 +370,42 @@ export function normalizeIgdbGame(game: IgdbGame): GameSummary {
   };
 }
 
+export function rankPopularityPrimitiveGameIds(
+  primitives: IgdbPopularityPrimitive[],
+  limit: number,
+) {
+  const maxValueByType = new Map<number, number>();
+  for (const primitive of primitives) {
+    maxValueByType.set(
+      primitive.popularity_type,
+      Math.max(
+        maxValueByType.get(primitive.popularity_type) ?? 0,
+        primitive.value,
+      ),
+    );
+  }
+
+  const scoreByGameId = new Map<number, number>();
+  for (const primitive of primitives) {
+    const maxValue = maxValueByType.get(primitive.popularity_type) ?? 0;
+    if (maxValue <= 0) {
+      continue;
+    }
+
+    const weight = trendingPopularityWeights[primitive.popularity_type] ?? 0;
+    const normalizedValue = primitive.value / maxValue;
+    scoreByGameId.set(
+      primitive.game_id,
+      (scoreByGameId.get(primitive.game_id) ?? 0) + normalizedValue * weight,
+    );
+  }
+
+  return Array.from(scoreByGameId.entries())
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, limit)
+    .map(([gameId]) => gameId);
+}
+
 export class IgdbGameProvider implements GameProvider {
   private readonly baseUrl = "https://api.igdb.com/v4";
 
@@ -430,6 +486,20 @@ export class IgdbGameProvider implements GameProvider {
   async getPopularGames(options?: PopularGamesOptions): Promise<GameSummary[]> {
     const page = options?.page ?? 1;
     const pageSize = options?.pageSize ?? 30;
+
+    try {
+      const trendingGames = await this.getTrendingPopularGames(
+        options,
+        page,
+        pageSize,
+      );
+      if (trendingGames.length) {
+        return trendingGames;
+      }
+    } catch {
+      // Fall back to the stable games endpoint when PopScore is unavailable.
+    }
+
     const body = this.buildGamesQuery({
       query: "",
       options,
@@ -533,6 +603,56 @@ export class IgdbGameProvider implements GameProvider {
   private async getValidatedGames(body: string) {
     const json = await this.request("games", body);
     return igdbGamesResponseSchema.parse(json);
+  }
+
+  private async getValidatedPopularityPrimitives(body: string) {
+    const json = await this.request("popularity_primitives", body);
+    return igdbPopularityPrimitivesResponseSchema.parse(json);
+  }
+
+  private async getTrendingPopularGames(
+    options: PopularGamesOptions | undefined,
+    page: number,
+    pageSize: number,
+  ) {
+    const offset = (page - 1) * pageSize;
+    const requestedCount = Math.min(Math.max(page * pageSize + 48, 80), 180);
+    const perTypeLimit = Math.min(Math.max(requestedCount, 80), 200);
+    const primitiveGroups = await Promise.all(
+      trendingPopularityTypes.map((type) =>
+        this.getValidatedPopularityPrimitives(
+          [
+            "fields game_id,popularity_type,value;",
+            `where popularity_type = ${type} & game_id != null;`,
+            "sort value desc;",
+            `limit ${perTypeLimit};`,
+          ].join("\n"),
+        ),
+      ),
+    );
+    const rankedIds = rankPopularityPrimitiveGameIds(
+      primitiveGroups.flat(),
+      requestedCount,
+    );
+    if (!rankedIds.length) {
+      return [];
+    }
+
+    const body = [
+      `fields ${GAME_FIELDS};`,
+      `where id = (${rankedIds.join(",")}) & cover != null & version_parent = null & game_type = 0;`,
+      `limit ${rankedIds.length};`,
+    ].join("\n");
+    const gamesById = new Map(
+      (await this.getValidatedGames(body)).map((game) => [game.id, game]),
+    );
+
+    return rankedIds
+      .map((gameId) => gamesById.get(gameId))
+      .filter((game): game is IgdbGame => Boolean(game))
+      .map(normalizeIgdbGame)
+      .filter((game) => matchesClientFilters(game, options))
+      .slice(offset, offset + pageSize);
   }
 
   private async fetchWithTimeout(url: string, init: RequestInit) {
