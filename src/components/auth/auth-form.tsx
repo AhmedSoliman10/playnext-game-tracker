@@ -88,7 +88,7 @@ export function AuthForm({ mode, demoMode }: AuthFormProps) {
     defaultValues: {
       email: demoMode ? "demo@playnext.local" : "",
       password: demoMode && mode !== "forgot-password" ? "playnext-demo" : "",
-      displayName: "Demo player",
+      displayName: "",
     },
   });
 

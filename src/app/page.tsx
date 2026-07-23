@@ -47,8 +47,8 @@ export default async function Home() {
       : "/landing-card-cover.svg";
   const exampleBackground =
     exampleGame?.provider === "igdb"
-      ? (getIgdbHeroUrl(exampleGame.screenshots[0]) ??
-        getIgdbArtworkUrl(exampleGame.backgroundImageUrl) ??
+      ? (getIgdbArtworkUrl(exampleGame.backgroundImageUrl) ??
+        getIgdbHeroUrl(exampleGame.screenshots[0]) ??
         "/social-preview.svg")
       : "/social-preview.svg";
   const exampleRating = formatRating(exampleGame?.externalRating) ?? "9.4";

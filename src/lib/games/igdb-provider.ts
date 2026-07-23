@@ -16,6 +16,8 @@ const igdbNamedEntitySchema = z.object({
 const igdbImageSchema = z.object({
   image_id: z.string().optional(),
   url: z.string().optional(),
+  width: z.number().int().positive().optional(),
+  height: z.number().int().positive().optional(),
 });
 
 const igdbInvolvedCompanySchema = z.object({
@@ -90,7 +92,11 @@ const GAME_FIELDS = [
   "rating",
   "total_rating_count",
   "screenshots.image_id",
+  "screenshots.width",
+  "screenshots.height",
   "artworks.image_id",
+  "artworks.width",
+  "artworks.height",
 ].join(",");
 
 const SIMILAR_GAME_FIELDS = [
@@ -160,6 +166,10 @@ const platformIdsByFilter: Record<string, number[]> = {
   Xbox: [11, 12, 49, 169],
 };
 
+const preferredHeroArtworkIdsBySlug: Record<string, string[]> = {
+  "red-dead-redemption-2": ["ar3qmt"],
+};
+
 function cacheKey(endpoint: string, body: string) {
   return `${endpoint}:${body}`;
 }
@@ -194,6 +204,28 @@ function firstCompany(
     companies.find((company) => company[role] && company.company?.name)?.company
       ?.name ?? null
   );
+}
+
+function preferredArtworkImageId(game: IgdbGame, slug: string) {
+  const preferredIds = preferredHeroArtworkIdsBySlug[slug] ?? [];
+  const preferredArtwork = game.artworks.find(
+    (artwork) =>
+      artwork.image_id !== undefined && preferredIds.includes(artwork.image_id),
+  );
+
+  if (preferredArtwork?.image_id) {
+    return preferredArtwork.image_id;
+  }
+
+  const landscapeArtwork = game.artworks.find(
+    (artwork) =>
+      artwork.image_id &&
+      artwork.width !== undefined &&
+      artwork.height !== undefined &&
+      artwork.width / artwork.height >= 1.6,
+  );
+
+  return landscapeArtwork?.image_id ?? game.artworks[0]?.image_id;
 }
 
 function sanitizeSearchText(query: string) {
@@ -276,8 +308,9 @@ function textMatches(candidate: string, requested: string) {
 }
 
 export function normalizeIgdbGame(game: IgdbGame): GameSummary {
+  const slug = game.slug ?? `${slugify(game.name)}-${game.id}`;
   const coverUrl = igdbImageUrl(game.cover?.image_id, "cover_big_2x");
-  const artworkUrl = igdbImageUrl(game.artworks[0]?.image_id, "1080p");
+  const artworkUrl = igdbImageUrl(preferredArtworkImageId(game, slug), "1080p");
   const screenshotUrls = game.screenshots
     .map((screenshot) => igdbImageUrl(screenshot.image_id, "screenshot_big"))
     .filter((url): url is string => Boolean(url));
@@ -285,7 +318,6 @@ export function normalizeIgdbGame(game: IgdbGame): GameSummary {
     artworkUrl ??
     igdbImageUrl(game.screenshots[0]?.image_id, "screenshot_huge") ??
     coverUrl;
-  const slug = game.slug ?? `${slugify(game.name)}-${game.id}`;
 
   return {
     id: String(game.id),

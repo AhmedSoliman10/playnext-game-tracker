@@ -54,6 +54,25 @@ describe("IGDB normalization", () => {
     expect(getIgdbSearchQueries("dinner dash")).toContain("diner dash");
   });
 
+  it("uses the preferred IGDB hero artwork for the landing featured Red Dead card", () => {
+    const parsed = igdbGameSchema.parse({
+      id: 25076,
+      slug: "red-dead-redemption-2",
+      name: "Red Dead Redemption 2",
+      summary: "A frontier story.",
+      artworks: [
+        { image_id: "nqtsfctiapng5xcmozyk", width: 3840, height: 2160 },
+        { image_id: "ar3qmt", width: 3840, height: 2160 },
+      ],
+    });
+
+    const game = normalizeIgdbGame(parsed);
+
+    expect(game.backgroundImageUrl).toBe(
+      "https://images.igdb.com/igdb/image/upload/t_1080p/ar3qmt.jpg",
+    );
+  });
+
   it("handles missing optional artwork and creates a stable fallback slug", () => {
     const parsed = igdbGameSchema.parse({
       id: 77,
