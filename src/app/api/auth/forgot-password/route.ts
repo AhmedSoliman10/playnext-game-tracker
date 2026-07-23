@@ -5,6 +5,13 @@ import { checkRateLimit } from "@/lib/server/rate-limit";
 import { createSupabaseRouteClient } from "@/lib/supabase/route";
 import { forgotPasswordSchema } from "@/lib/validation/auth";
 
+function isEmailRateLimitError(error: { code?: string; message: string }) {
+  return (
+    error.code === "over_email_send_rate_limit" ||
+    error.message.toLowerCase().includes("email rate limit")
+  );
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await readJson(request);
@@ -40,6 +47,16 @@ export async function POST(request: NextRequest) {
       );
 
       if (error) {
+        if (isEmailRateLimitError(error)) {
+          return NextResponse.json(
+            {
+              error:
+                "Supabase email sending is temporarily rate-limited. Please wait a few minutes, or configure custom SMTP for production auth emails.",
+            },
+            { status: 429 },
+          );
+        }
+
         return NextResponse.json(
           { error: "We could not start the reset flow. Please try again." },
           { status: 400 },
