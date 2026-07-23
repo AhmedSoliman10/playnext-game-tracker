@@ -4,7 +4,7 @@ import type { EmailOtpType } from "@supabase/supabase-js";
 import { Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
@@ -70,9 +70,15 @@ export function AuthConfirmClient({
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const hasAttemptedConfirmation = useRef(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (hasAttemptedConfirmation.current) {
+      return;
+    }
+
+    hasAttemptedConfirmation.current = true;
     let mounted = true;
 
     async function confirm() {
@@ -94,11 +100,29 @@ export function AuthConfirmClient({
         flow === "signup" || next.startsWith("/login")
           ? "/login?verified=maybe"
           : null;
+      const continueIfRecoverySessionExists = async () => {
+        if (flow !== "reset") {
+          return false;
+        }
+
+        const { data } = await supabase.auth.getSession();
+        if (!data.session) {
+          return false;
+        }
+
+        router.replace(next);
+        router.refresh();
+        return true;
+      };
 
       if (code) {
         const { error: exchangeError } =
           await supabase.auth.exchangeCodeForSession(code);
         if (exchangeError) {
+          if (await continueIfRecoverySessionExists()) {
+            return;
+          }
+
           if (signInFallback) {
             router.replace(signInFallback);
             router.refresh();
@@ -115,6 +139,10 @@ export function AuthConfirmClient({
         });
 
         if (verifyError) {
+          if (await continueIfRecoverySessionExists()) {
+            return;
+          }
+
           if (signInFallback) {
             router.replace(signInFallback);
             router.refresh();
@@ -131,6 +159,10 @@ export function AuthConfirmClient({
         });
 
         if (setSessionError) {
+          if (await continueIfRecoverySessionExists()) {
+            return;
+          }
+
           setError("This authentication link is invalid or expired.");
           return;
         }

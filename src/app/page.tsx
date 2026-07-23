@@ -40,13 +40,18 @@ export default async function Home() {
       ? (getIgdbArtworkUrl(exampleGame.coverImageUrl) ??
         "/landing-card-cover.svg")
       : "/landing-card-cover.svg";
+  const exampleBackground =
+    exampleGame?.provider === "igdb"
+      ? (getIgdbArtworkUrl(exampleGame.backgroundImageUrl) ??
+        "/social-preview.svg")
+      : "/social-preview.svg";
   const exampleRating = formatRating(exampleGame?.externalRating) ?? "9.4";
 
   return (
     <main className="min-h-screen bg-background">
       <section className="relative flex min-h-[78vh] items-center overflow-hidden border-b bg-zinc-950">
         <Image
-          src="/social-preview.svg"
+          src={exampleBackground}
           alt=""
           fill
           priority
