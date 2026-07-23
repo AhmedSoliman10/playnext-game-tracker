@@ -1,6 +1,6 @@
 import type { PostgrestError } from "@supabase/supabase-js";
 import type { GameSummary } from "@/lib/games/types";
-import { fallbackGameProvider, getGameProvider } from "@/lib/games/provider";
+import { getCachedGameBySlug } from "@/lib/games/cached-provider";
 import { isSupabaseConfigured } from "@/lib/auth/env";
 import {
   demoGetLibraryEntries,
@@ -120,11 +120,7 @@ function gameMetadata(game: GameSummary): Json {
 }
 
 async function getProviderGame(slug: string) {
-  const provider = getGameProvider();
-  return (
-    (await provider.getGameBySlug(slug)) ??
-    (await fallbackGameProvider.getGameBySlug(slug))
-  );
+  return getCachedGameBySlug(slug);
 }
 
 async function getGameRowBySlug(client: SupabaseClient, slug: string) {
@@ -181,6 +177,20 @@ async function ensureGameInSupabase(game: GameSummary, client: SupabaseClient) {
 
   await syncGameTaxonomy(data.id, game);
   return data;
+}
+
+async function ensureGameRowBySlug(client: SupabaseClient, slug: string) {
+  const existing = await getGameRowBySlug(client, slug);
+  if (existing) {
+    return existing;
+  }
+
+  const providerGame = await getProviderGame(slug);
+  if (!providerGame) {
+    throw new Error("We could not find that game.");
+  }
+
+  return ensureGameInSupabase(providerGame, client);
 }
 
 async function syncGameTaxonomy(gameId: string, game: GameSummary) {
@@ -436,12 +446,7 @@ export async function updateUserGameStatus(
   }
 
   const supabase = await getSupabaseClient();
-  const providerGame = await getProviderGame(input.gameSlug);
-  if (!providerGame) {
-    throw new Error("We could not find that game.");
-  }
-
-  const gameRow = await ensureGameInSupabase(providerGame, supabase);
+  const gameRow = await ensureGameRowBySlug(supabase, input.gameSlug);
   const { data: existing, error: existingError } = await supabase
     .from("user_games")
     .select("*")
@@ -547,12 +552,7 @@ export async function updateFavorite(
   }
 
   const supabase = await getSupabaseClient();
-  const providerGame = await getProviderGame(input.gameSlug);
-  if (!providerGame) {
-    throw new Error("We could not find that game.");
-  }
-
-  const gameRow = await ensureGameInSupabase(providerGame, supabase);
+  const gameRow = await ensureGameRowBySlug(supabase, input.gameSlug);
   const { data: existing, error: existingError } = await supabase
     .from("user_games")
     .select("*")
@@ -611,12 +611,7 @@ export async function saveRating(
   }
 
   const supabase = await getSupabaseClient();
-  const providerGame = await getProviderGame(input.gameSlug);
-  if (!providerGame) {
-    throw new Error("We could not find that game.");
-  }
-
-  const gameRow = await ensureGameInSupabase(providerGame, supabase);
+  const gameRow = await ensureGameRowBySlug(supabase, input.gameSlug);
   const { error: userGameError } = await supabase.from("user_games").upsert(
     {
       user_id: user.userId,

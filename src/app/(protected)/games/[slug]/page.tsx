@@ -1,6 +1,9 @@
 import { notFound } from "next/navigation";
 import { GameDetailsClient } from "@/components/games/game-details-client";
-import { fallbackGameProvider, getGameProvider } from "@/lib/games/provider";
+import {
+  getCachedGameBySlug,
+  getCachedSimilarGames,
+} from "@/lib/games/cached-provider";
 import { getCurrentUser } from "@/lib/server/current-user";
 import {
   getGameRatingBreakdown,
@@ -13,9 +16,7 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const game =
-    (await getGameProvider().getGameBySlug(slug)) ??
-    (await fallbackGameProvider.getGameBySlug(slug));
+  const game = await getCachedGameBySlug(slug);
   return {
     title: game ? game.title : "Game",
   };
@@ -27,10 +28,7 @@ export default async function GameDetailsPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const provider = getGameProvider();
-  const game =
-    (await provider.getGameBySlug(slug)) ??
-    (await fallbackGameProvider.getGameBySlug(slug));
+  const game = await getCachedGameBySlug(slug);
 
   if (!game) {
     notFound();
@@ -39,7 +37,7 @@ export default async function GameDetailsPage({
   const user = await getCurrentUser();
   const [entry, similarGames, ratingBreakdown] = await Promise.all([
     user ? getLibraryEntryBySlug(user, slug) : Promise.resolve(null),
-    provider.getSimilarGames(game.id),
+    getCachedSimilarGames(game.id),
     getGameRatingBreakdown(slug),
   ]);
 

@@ -1,7 +1,7 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import type { GameSummary } from "@/lib/games/types";
-import { fallbackGameProvider, getGameProvider } from "@/lib/games/provider";
+import { getCachedGameBySlug } from "@/lib/games/cached-provider";
 import type { LibraryEntry, UserContext } from "@/lib/types";
 import type { RatingFormValues } from "@/lib/validation/rating";
 import type {
@@ -54,10 +54,7 @@ async function getUserState(userId: string) {
 }
 
 async function getGame(slug: string): Promise<GameSummary> {
-  const provider = getGameProvider();
-  const game =
-    (await provider.getGameBySlug(slug)) ??
-    (await fallbackGameProvider.getGameBySlug(slug));
+  const game = await getCachedGameBySlug(slug);
 
   if (!game) {
     throw new Error("We could not find that game.");

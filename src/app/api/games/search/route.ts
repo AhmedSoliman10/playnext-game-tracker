@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getGameProvider } from "@/lib/games/provider";
+import { searchCachedGames } from "@/lib/games/cached-provider";
 import { searchParamsSchema } from "@/lib/validation/search";
 import { checkRateLimit } from "@/lib/server/rate-limit";
 import { clientRateLimitKey, errorResponse } from "@/lib/server/http";
@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
     const input = searchParamsSchema.parse(
       Object.fromEntries(request.nextUrl.searchParams.entries()),
     );
-    const result = await getGameProvider().searchGames(input.q, {
+    const result = await searchCachedGames(input.q, {
       genres: input.genre ? [input.genre] : undefined,
       platforms: input.platform ? [input.platform] : undefined,
       releaseYear: input.year,

@@ -7,7 +7,7 @@ import { BarList } from "@/components/charts/bar-list";
 import { StatCard } from "@/components/profile/stat-card";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
-import { getGameProvider } from "@/lib/games/provider";
+import { getCachedPopularGames } from "@/lib/games/cached-provider";
 import {
   getGameIdentityKeys,
   getRecommendations,
@@ -24,7 +24,7 @@ export default async function DashboardPage() {
   const user = await getCurrentUser();
   const entries = user ? await getLibraryEntries(user) : [];
   const stats = calculateUserStats(entries);
-  const games = await getGameProvider().getPopularGames({ pageSize: 30 });
+  const games = await getCachedPopularGames({ pageSize: 30 });
   const recommendations = getRecommendations(games, entries, 4);
   const entriesByGameKey = new Map<string, (typeof entries)[number]>();
   for (const entry of entries) {

@@ -1,6 +1,6 @@
 import { DiscoveryClient } from "@/components/discover/discovery-client";
 import type { GameSummary } from "@/lib/games/types";
-import { getGameProvider } from "@/lib/games/provider";
+import { getCachedPopularGames } from "@/lib/games/cached-provider";
 import {
   getGameIdentityKeys,
   getGameSlugIdentityKey,
@@ -36,7 +36,6 @@ async function getDiscoveryGames(
   entries: Awaited<ReturnType<typeof getLibraryEntries>>,
   discoverySlugs: string[],
 ) {
-  const provider = getGameProvider();
   const hasTasteSignal = entries.some(
     (entry) =>
       (entry.rating?.overallRating ?? 0) > 0 || entry.userGame.isFavorite,
@@ -74,12 +73,12 @@ async function getDiscoveryGames(
   return [...recommendedGames, ...exploratoryFill].slice(0, 50);
 
   async function loadPopularGames(page: number): Promise<GameSummary[]> {
-    const games = await provider.getPopularGames({ page, pageSize: 75 });
+    const games = await getCachedPopularGames({ page, pageSize: 75 });
     if (games.length > 0 || page === 1) {
       return games;
     }
 
-    return provider.getPopularGames({ page: 1, pageSize: 75 });
+    return getCachedPopularGames({ page: 1, pageSize: 75 });
   }
 }
 

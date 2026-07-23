@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import type { GameSummary } from "@/lib/games/types";
-import { getGameProvider } from "@/lib/games/provider";
+import { getCachedPopularGames } from "@/lib/games/cached-provider";
 import {
   getGameIdentityKeys,
   getGameSlugIdentityKey,
@@ -32,9 +32,9 @@ export async function GET() {
         (entry.rating?.overallRating ?? 0) > 0 || entry.userGame.isFavorite,
     );
     const page = hasTasteSignal ? 1 : Math.floor(Math.random() * 6) + 1;
-    let games = await getGameProvider().getPopularGames({ page, pageSize: 75 });
+    let games = await getCachedPopularGames({ page, pageSize: 75 });
     if (games.length === 0 && page !== 1) {
-      games = await getGameProvider().getPopularGames({
+      games = await getCachedPopularGames({
         page: 1,
         pageSize: 75,
       });

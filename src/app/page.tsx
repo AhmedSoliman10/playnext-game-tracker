@@ -11,13 +11,16 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { PopularNowCarousel } from "@/components/games/popular-now-carousel";
-import { getGameProvider } from "@/lib/games/provider";
+import {
+  getCachedGameBySlug,
+  getCachedPopularGames,
+} from "@/lib/games/cached-provider";
 
 export const revalidate = 21600;
 
 async function getLandingExampleGame() {
   try {
-    return await getGameProvider().getGameBySlug("red-dead-redemption-2");
+    return await getCachedGameBySlug("red-dead-redemption-2");
   } catch {
     return null;
   }
@@ -41,7 +44,7 @@ function formatRating(value?: number | null) {
 export default async function Home() {
   const [exampleGame, popularGames] = await Promise.all([
     getLandingExampleGame(),
-    getGameProvider().getPopularGames({ pageSize: 12 }),
+    getCachedPopularGames({ pageSize: 12 }),
   ]);
   const exampleTitle = exampleGame?.title ?? "Red Dead Redemption 2";
   const exampleCover =
