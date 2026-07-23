@@ -1,6 +1,13 @@
 "use client";
 
-import { ChevronLeft, ChevronRight, Loader2, Send, Star } from "lucide-react";
+import {
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  Loader2,
+  Send,
+  Star,
+} from "lucide-react";
 import { useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { GameArtwork } from "@/components/games/game-artwork";
@@ -135,6 +142,26 @@ function RatingGrid({
       ) : null}
     </div>
   );
+}
+
+function isStepAnswered(
+  key: RatingKey,
+  values: Partial<RatingFormInput>,
+  overallRating?: number | null,
+) {
+  if (key === "overallRating") {
+    return typeof overallRating === "number";
+  }
+
+  if (key === "finished" || key === "wouldRecommend") {
+    return typeof values[key] === "boolean";
+  }
+
+  if (key === "review") {
+    return typeof values.review === "string" && values.review.trim().length > 0;
+  }
+
+  return typeof values[key as CategoryRatingKey] === "number";
 }
 
 export function RatingDialog({
@@ -317,6 +344,7 @@ export function RatingDialog({
           onSelect={(value) => {
             if (value !== null) {
               setOverallValue(value);
+              goNext();
             }
           }}
           ariaLabel="Overall rating from 1 to 10"
@@ -368,7 +396,12 @@ export function RatingDialog({
       <RatingGrid
         values={wholeOptions}
         current={values[categoryKey] as number | null | undefined}
-        onSelect={(value) => setCategoryValue(categoryKey, value)}
+        onSelect={(value) => {
+          setCategoryValue(categoryKey, value);
+          if (value !== null) {
+            goNext();
+          }
+        }}
         onSkip={skipCurrentStep}
         ariaLabel={`${step.title} Rating from 1 to 10`}
       />
@@ -419,6 +452,45 @@ export function RatingDialog({
                   width: `${((stepIndex + 1) / steps.length) * 100}%`,
                 }}
               />
+            </div>
+
+            <div
+              className="mt-3 flex gap-2 overflow-x-auto pb-1"
+              aria-label="Rating steps"
+            >
+              {steps.map((item, index) => {
+                const active = index === stepIndex;
+                const answered = isStepAnswered(
+                  item.key,
+                  values,
+                  overallRating,
+                );
+                return (
+                  <button
+                    key={item.key}
+                    type="button"
+                    onClick={() => setStepIndex(index)}
+                    aria-current={active ? "step" : undefined}
+                    aria-label={`Go to rating step ${index + 1}${
+                      answered ? ", answered" : ""
+                    }`}
+                    title={item.title}
+                    className={`flex h-8 min-w-8 items-center justify-center rounded-full border text-xs font-bold transition focus-visible:outline-2 focus-visible:outline-offset-2 ${
+                      active
+                        ? "border-cyan-300 bg-cyan-300 text-zinc-950"
+                        : answered
+                          ? "border-lime-300/50 bg-lime-300/15 text-lime-100 hover:border-lime-300"
+                          : "border-zinc-700 bg-zinc-950 text-zinc-400 hover:border-zinc-500 hover:text-zinc-100"
+                    }`}
+                  >
+                    {answered && !active ? (
+                      <Check className="h-4 w-4" />
+                    ) : (
+                      index + 1
+                    )}
+                  </button>
+                );
+              })}
             </div>
 
             <form

@@ -42,7 +42,6 @@ test("critical game tracking journey works with keyboard-accessible discovery", 
   await page.getByRole("button", { name: "Yes" }).click();
   await page.getByRole("button", { name: "Continue" }).click();
   await page.getByRole("radio", { name: "8.5" }).click();
-  await page.getByRole("button", { name: "Next", exact: true }).click();
 
   for (let step = 0; step < 5; step += 1) {
     await page.getByRole("button", { name: "Continue" }).click();

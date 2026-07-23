@@ -58,6 +58,48 @@ const statusActions: Array<{
   },
 ];
 
+const activeStatusLabels: Record<
+  GameStatus,
+  {
+    label: string;
+    ariaLabel: string;
+    title: string;
+    icon?: React.ComponentType<{ className?: string }>;
+  }
+> = {
+  played: {
+    label: "Clear played",
+    ariaLabel: "Remove played status",
+    title: "Remove played status",
+  },
+  playing: {
+    label: "Stop playing",
+    ariaLabel: "Remove currently playing status",
+    title: "Remove currently playing status",
+  },
+  want_to_play: {
+    label: "Clear backlog",
+    ariaLabel: "Remove from want to play",
+    title: "Remove from want to play",
+  },
+  dropped: {
+    label: "Clear dropped",
+    ariaLabel: "Remove dropped status",
+    title: "Remove dropped status",
+  },
+  not_interested: {
+    label: "Unhide",
+    ariaLabel: "Unhide from library",
+    title: "Unhide from library",
+    icon: Eye,
+  },
+  skipped: {
+    label: "Clear skip",
+    ariaLabel: "Clear skipped status",
+    title: "Clear skipped status",
+  },
+};
+
 export function StatusButtons({
   gameSlug,
   currentStatus,
@@ -83,9 +125,18 @@ export function StatusButtons({
   >(null);
   const [error, setError] = useState<string | null>(null);
   const [localFavorite, setLocalFavorite] = useState(Boolean(favorite));
-  const isHidden = currentStatus === "not_interested";
 
   async function updateStatus(status: GameStatus) {
+    if (currentStatus === status) {
+      if (status === "not_interested") {
+        await unhideGame();
+        return;
+      }
+
+      await deleteLibraryEntry(status, false);
+      return;
+    }
+
     setBusyStatus(status);
     setError(null);
     try {
@@ -156,15 +207,20 @@ export function StatusButtons({
     }
   }
 
-  async function removeGame() {
-    const confirmed = window.confirm(
-      "Remove this game from your library? Your saved status and rating will be deleted.",
-    );
-    if (!confirmed) {
-      return;
+  async function deleteLibraryEntry(
+    busyKey: GameStatus | "remove",
+    shouldConfirm: boolean,
+  ) {
+    if (shouldConfirm) {
+      const confirmed = window.confirm(
+        "Remove this game from your library? Your saved status and rating will be deleted.",
+      );
+      if (!confirmed) {
+        return;
+      }
     }
 
-    setBusyStatus("remove");
+    setBusyStatus(busyKey);
     setError(null);
     try {
       const response = await fetch("/api/user-games", {
@@ -191,6 +247,10 @@ export function StatusButtons({
     } finally {
       setBusyStatus(null);
     }
+  }
+
+  async function removeGame() {
+    await deleteLibraryEntry("remove", true);
   }
 
   async function unhideGame() {
@@ -228,6 +288,33 @@ export function StatusButtons({
     }
   }
 
+  function getActionContent(
+    action: (typeof statusActions)[number],
+    active: boolean,
+  ) {
+    if (!active) {
+      return {
+        Icon: action.icon,
+        label: action.compactLabel,
+        ariaLabel: STATUS_PROMPTS[action.status],
+        title: action.compactLabel,
+        variant: action.variant,
+      };
+    }
+
+    const activeLabel = activeStatusLabels[action.status];
+    return {
+      Icon: activeLabel.icon ?? action.icon,
+      label: activeLabel.label,
+      ariaLabel: activeLabel.ariaLabel,
+      title: activeLabel.title,
+      variant:
+        action.status === "not_interested"
+          ? ("secondary" as const)
+          : ("default" as const),
+    };
+  }
+
   if (compact) {
     return (
       <div className="space-y-2">
@@ -249,37 +336,27 @@ export function StatusButtons({
             />
           </Button>
           {statusActions.map((action) => {
-            const Icon = action.icon;
             const active = currentStatus === action.status;
+            const { Icon, ariaLabel, title, variant } = getActionContent(
+              action,
+              active,
+            );
             return (
               <Button
                 key={action.status}
                 type="button"
-                variant={active ? "default" : action.variant}
+                variant={variant}
                 size="icon"
                 onClick={() => updateStatus(action.status)}
                 disabled={busyStatus !== null}
-                aria-label={STATUS_PROMPTS[action.status]}
+                aria-label={ariaLabel}
                 aria-pressed={active}
-                title={action.compactLabel}
+                title={title}
               >
                 <Icon className="h-4 w-4" />
               </Button>
             );
           })}
-          {isHidden ? (
-            <Button
-              type="button"
-              variant="secondary"
-              size="icon"
-              onClick={unhideGame}
-              disabled={busyStatus !== null}
-              aria-label="Unhide from library"
-              title="Unhide"
-            >
-              <Eye className="h-4 w-4" />
-            </Button>
-          ) : null}
           {removable ? (
             <Button
               type="button"
@@ -314,36 +391,28 @@ export function StatusButtons({
           Favorite
         </Button>
         {statusActions.map((action) => {
-          const Icon = action.icon;
           const active = currentStatus === action.status;
+          const { Icon, label, ariaLabel, title, variant } = getActionContent(
+            action,
+            active,
+          );
           return (
             <Button
               key={action.status}
               type="button"
-              variant={active ? "default" : action.variant}
+              variant={variant}
               onClick={() => updateStatus(action.status)}
               disabled={busyStatus !== null}
-              aria-label={STATUS_PROMPTS[action.status]}
+              aria-label={ariaLabel}
               aria-pressed={active}
+              title={title}
               className="h-auto min-h-11 whitespace-normal px-3 py-2 text-center leading-tight"
             >
               <Icon className="h-4 w-4" />
-              {action.compactLabel}
+              {label}
             </Button>
           );
         })}
-        {isHidden ? (
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={unhideGame}
-            disabled={busyStatus !== null}
-            className="h-auto min-h-11 whitespace-normal px-3 py-2 text-center leading-tight"
-          >
-            <Eye className="h-4 w-4" />
-            Unhide
-          </Button>
-        ) : null}
         {removable ? (
           <Button
             type="button"
