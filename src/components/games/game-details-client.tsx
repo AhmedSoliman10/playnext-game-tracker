@@ -133,6 +133,7 @@ export function GameDetailsClient({
                 onChanged={setEntry}
                 onRemoved={() => setEntry(null)}
                 onPlayed={() => setRatingOpen(true)}
+                onFavoriteSelected={() => setRatingOpen(true)}
                 removable={Boolean(entry)}
               />
             </div>

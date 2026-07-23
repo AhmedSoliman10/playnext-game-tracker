@@ -114,7 +114,11 @@ test("critical game tracking journey works with keyboard-accessible discovery", 
   ).toHaveCount(0);
   await page.goto("/library/hidden");
   await expect(page.getByText(hiddenTitle)).toBeVisible();
-  await page.getByRole("button", { name: "Unhide from library" }).click();
+  await page
+    .getByRole("button", {
+      name: "Hidden. Press again to unhide this game.",
+    })
+    .click();
   await expect(page.getByText(hiddenTitle)).toHaveCount(0);
 });
 

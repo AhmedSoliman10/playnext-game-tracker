@@ -6,9 +6,9 @@ import { useRouter } from "next/navigation";
 import {
   Check,
   Clock,
-  Eye,
   EyeOff,
   Heart,
+  Loader2,
   PauseCircle,
   Plus,
   RotateCcw,
@@ -68,37 +68,50 @@ const activeStatusLabels: Record<
   }
 > = {
   played: {
-    label: "Clear played",
-    ariaLabel: "Remove played status",
-    title: "Remove played status",
+    label: "Played",
+    ariaLabel: "Played. Press again to remove from your library.",
+    title: "Played",
   },
   playing: {
-    label: "Stop playing",
-    ariaLabel: "Remove currently playing status",
-    title: "Remove currently playing status",
+    label: "Playing",
+    ariaLabel: "Currently playing. Press again to remove from your library.",
+    title: "Playing",
   },
   want_to_play: {
-    label: "Clear backlog",
-    ariaLabel: "Remove from want to play",
-    title: "Remove from want to play",
+    label: "Backlogged",
+    ariaLabel: "Backlogged. Press again to remove from your library.",
+    title: "Backlogged",
   },
   dropped: {
-    label: "Clear dropped",
-    ariaLabel: "Remove dropped status",
-    title: "Remove dropped status",
+    label: "Dropped",
+    ariaLabel: "Dropped. Press again to remove from your library.",
+    title: "Dropped",
   },
   not_interested: {
-    label: "Unhide",
-    ariaLabel: "Unhide from library",
-    title: "Unhide from library",
-    icon: Eye,
+    label: "Hidden",
+    ariaLabel: "Hidden. Press again to unhide this game.",
+    title: "Hidden",
+    icon: EyeOff,
   },
   skipped: {
-    label: "Clear skip",
-    ariaLabel: "Clear skipped status",
-    title: "Clear skipped status",
+    label: "Skipped",
+    ariaLabel: "Skipped. Press again to remove from your library.",
+    title: "Skipped",
   },
 };
+
+const statusBusyLabels: Record<GameStatus, { saving: string; removing: string }> =
+  {
+    played: { saving: "Saving played...", removing: "Removing played..." },
+    playing: { saving: "Saving playing...", removing: "Removing playing..." },
+    want_to_play: {
+      saving: "Saving backlog...",
+      removing: "Removing backlog...",
+    },
+    dropped: { saving: "Saving dropped...", removing: "Removing dropped..." },
+    not_interested: { saving: "Hiding game...", removing: "Unhiding game..." },
+    skipped: { saving: "Skipping game...", removing: "Removing skipped..." },
+  };
 
 export function StatusButtons({
   gameSlug,
@@ -109,6 +122,7 @@ export function StatusButtons({
   onChanged,
   onRemoved,
   onPlayed,
+  onFavoriteSelected,
 }: {
   gameSlug: string;
   currentStatus?: GameStatus | null;
@@ -118,6 +132,7 @@ export function StatusButtons({
   onChanged?: (entry: LibraryEntry) => void;
   onRemoved?: (gameSlug: string) => void;
   onPlayed?: () => void;
+  onFavoriteSelected?: () => void;
 }) {
   const router = useRouter();
   const [busyStatus, setBusyStatus] = useState<
@@ -197,6 +212,9 @@ export function StatusButtons({
       onChanged?.(payload.entry);
       if (!onChanged) {
         router.refresh();
+      }
+      if (nextFavorite) {
+        onFavoriteSelected?.();
       }
     } catch (error) {
       setError(
@@ -315,6 +333,34 @@ export function StatusButtons({
     };
   }
 
+  function getStatusBusyLabel(status: GameStatus) {
+    const isRemoving = currentStatus === status;
+    if (status === "not_interested" && isRemoving) {
+      return statusBusyLabels.not_interested.removing;
+    }
+    return isRemoving
+      ? statusBusyLabels[status].removing
+      : statusBusyLabels[status].saving;
+  }
+
+  function getBusyMessage() {
+    if (!busyStatus) {
+      return null;
+    }
+    if (busyStatus === "favorite") {
+      return localFavorite ? "Removing favorite..." : "Saving favorite...";
+    }
+    if (busyStatus === "remove") {
+      return "Removing from library...";
+    }
+    if (busyStatus === "unhide") {
+      return "Unhiding game...";
+    }
+    return getStatusBusyLabel(busyStatus);
+  }
+
+  const busyMessage = getBusyMessage();
+
   if (compact) {
     return (
       <div className="space-y-2">
@@ -326,14 +372,20 @@ export function StatusButtons({
             onClick={toggleFavorite}
             disabled={busyStatus !== null}
             aria-label={
-              localFavorite ? "Remove from favorites" : "Add to favorites"
+              localFavorite
+                ? "Favorited. Press again to remove from favorites."
+                : "Add to favorites"
             }
             aria-pressed={localFavorite}
-            title={localFavorite ? "Remove from favorites" : "Add to favorites"}
+            title={localFavorite ? "Favorited" : "Add to favorites"}
           >
-            <Heart
-              className={cn("h-4 w-4", localFavorite && "fill-zinc-950")}
-            />
+            {busyStatus === "favorite" ? (
+              <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+            ) : (
+              <Heart
+                className={cn("h-4 w-4", localFavorite && "fill-zinc-950")}
+              />
+            )}
           </Button>
           {statusActions.map((action) => {
             const active = currentStatus === action.status;
@@ -341,6 +393,9 @@ export function StatusButtons({
               action,
               active,
             );
+            const isActionBusy =
+              busyStatus === action.status ||
+              (busyStatus === "unhide" && action.status === "not_interested");
             return (
               <Button
                 key={action.status}
@@ -353,7 +408,11 @@ export function StatusButtons({
                 aria-pressed={active}
                 title={title}
               >
-                <Icon className="h-4 w-4" />
+                {isActionBusy ? (
+                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                ) : (
+                  <Icon className="h-4 w-4" />
+                )}
               </Button>
             );
           })}
@@ -367,10 +426,19 @@ export function StatusButtons({
               aria-label="Remove from library"
               title="Remove from library"
             >
-              <Trash2 className="h-4 w-4" />
+              {busyStatus === "remove" ? (
+                <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+              ) : (
+                <Trash2 className="h-4 w-4" />
+              )}
             </Button>
           ) : null}
         </div>
+        {busyMessage ? (
+          <p className="text-xs font-medium text-cyan-200" aria-live="polite">
+            {busyMessage}
+          </p>
+        ) : null}
         {error ? <p className="text-sm text-rose-300">{error}</p> : null}
       </div>
     );
@@ -385,10 +453,27 @@ export function StatusButtons({
           onClick={toggleFavorite}
           disabled={busyStatus !== null}
           aria-pressed={localFavorite}
+          aria-label={
+            localFavorite
+              ? "Favorited. Press again to remove from favorites."
+              : "Add to favorites"
+          }
           className="h-auto min-h-11 whitespace-normal px-3 py-2 text-center leading-tight"
         >
-          <Heart className={cn("h-4 w-4", localFavorite && "fill-zinc-950")} />
-          Favorite
+          {busyStatus === "favorite" ? (
+            <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+          ) : (
+            <Heart
+              className={cn("h-4 w-4", localFavorite && "fill-zinc-950")}
+            />
+          )}
+          {busyStatus === "favorite"
+            ? localFavorite
+              ? "Removing..."
+              : "Saving..."
+            : localFavorite
+              ? "Favorited"
+              : "Favorite"}
         </Button>
         {statusActions.map((action) => {
           const active = currentStatus === action.status;
@@ -396,6 +481,9 @@ export function StatusButtons({
             action,
             active,
           );
+          const isActionBusy =
+            busyStatus === action.status ||
+            (busyStatus === "unhide" && action.status === "not_interested");
           return (
             <Button
               key={action.status}
@@ -408,8 +496,12 @@ export function StatusButtons({
               title={title}
               className="h-auto min-h-11 whitespace-normal px-3 py-2 text-center leading-tight"
             >
-              <Icon className="h-4 w-4" />
-              {label}
+              {isActionBusy ? (
+                <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+              ) : (
+                <Icon className="h-4 w-4" />
+              )}
+              {isActionBusy ? getStatusBusyLabel(action.status) : label}
             </Button>
           );
         })}
@@ -421,11 +513,20 @@ export function StatusButtons({
             disabled={busyStatus !== null}
             className="h-auto min-h-11 whitespace-normal px-3 py-2 text-center leading-tight"
           >
-            <Trash2 className="h-4 w-4" />
-            Remove
+            {busyStatus === "remove" ? (
+              <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+            ) : (
+              <Trash2 className="h-4 w-4" />
+            )}
+            {busyStatus === "remove" ? "Removing..." : "Remove"}
           </Button>
         ) : null}
       </div>
+      {busyMessage ? (
+        <p className="text-sm font-medium text-cyan-200" aria-live="polite">
+          {busyMessage}
+        </p>
+      ) : null}
       {error ? <p className="text-sm text-rose-300">{error}</p> : null}
     </div>
   );

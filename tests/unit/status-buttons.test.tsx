@@ -26,7 +26,7 @@ describe("StatusButtons", () => {
     vi.clearAllMocks();
   });
 
-  it("clears active played status without opening the rating flow", async () => {
+  it("removes an active played status without opening the rating flow again", async () => {
     const fetchMock = mockFetchResponse({
       ok: true,
       gameSlug: "the-witcher-3-wild-hunt",
@@ -45,7 +45,9 @@ describe("StatusButtons", () => {
     );
 
     await userEvent.click(
-      screen.getByRole("button", { name: "Remove played status" }),
+      screen.getByRole("button", {
+        name: "Played. Press again to remove from your library.",
+      }),
     );
 
     await waitFor(() =>
@@ -56,6 +58,66 @@ describe("StatusButtons", () => {
     );
     expect(onPlayed).not.toHaveBeenCalled();
     expect(onRemoved).toHaveBeenCalledWith("the-witcher-3-wild-hunt");
+  });
+
+  it("uses selected-state labels instead of clear-command labels", () => {
+    render(
+      <StatusButtons
+        gameSlug="the-witcher-3-wild-hunt"
+        currentStatus="played"
+        favorite
+      />,
+    );
+
+    expect(screen.getByText("Played")).toBeInTheDocument();
+    expect(screen.getByText("Favorited")).toBeInTheDocument();
+    expect(screen.queryByText(/clear/i)).not.toBeInTheDocument();
+  });
+
+  it("shows immediate loading feedback while saving a favorite", async () => {
+    let resolveFetch!: (response: Response) => void;
+    const fetchMock = vi.fn(
+      () =>
+        new Promise<Response>((resolve) => {
+          resolveFetch = resolve;
+        }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    const onFavoriteSelected = vi.fn();
+
+    render(
+      <StatusButtons
+        gameSlug="hades"
+        onFavoriteSelected={onFavoriteSelected}
+      />,
+    );
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "Add to favorites" }),
+    );
+
+    expect(screen.getByText("Saving...")).toBeInTheDocument();
+    expect(screen.getByText("Saving favorite...")).toBeInTheDocument();
+
+    resolveFetch(
+      new Response(
+        JSON.stringify({
+          entry: {
+            game: { slug: "hades" },
+            userGame: {
+              status: "want_to_play",
+              isFavorite: true,
+            },
+          },
+        }),
+        {
+          headers: { "Content-Type": "application/json" },
+          status: 200,
+        },
+      ),
+    );
+
+    await waitFor(() => expect(onFavoriteSelected).toHaveBeenCalledOnce());
   });
 
   it("keeps inactive status buttons neutral until a status is selected", () => {
@@ -97,7 +159,9 @@ describe("StatusButtons", () => {
     );
 
     await userEvent.click(
-      screen.getByRole("button", { name: "Unhide from library" }),
+      screen.getByRole("button", {
+        name: "Hidden. Press again to unhide this game.",
+      }),
     );
 
     await waitFor(() =>
