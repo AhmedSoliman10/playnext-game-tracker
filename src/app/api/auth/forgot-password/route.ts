@@ -1,29 +1,31 @@
 import { NextRequest, NextResponse } from "next/server";
-import { APP_URL, isSupabaseConfigured } from "@/lib/auth/env";
+import { getAuthCallbackUrl, isSupabaseConfigured } from "@/lib/auth/env";
 import { clientRateLimitKey, errorResponse, readJson } from "@/lib/server/http";
 import { checkRateLimit } from "@/lib/server/rate-limit";
 import { createSupabaseRouteClient } from "@/lib/supabase/route";
 import { forgotPasswordSchema } from "@/lib/validation/auth";
 
 export async function POST(request: NextRequest) {
-  const body = await readJson(request);
-  const input = forgotPasswordSchema.parse(body);
-  const limit = checkRateLimit(
-    clientRateLimitKey(request, `forgot:${input.email}`),
-    {
-      limit: 4,
-      windowMs: 60_000,
-    },
-  );
-
-  if (!limit.allowed) {
-    return NextResponse.json(
-      { error: "Too many reset requests. Please wait a minute and try again." },
-      { status: 429 },
-    );
-  }
-
   try {
+    const body = await readJson(request);
+    const input = forgotPasswordSchema.parse(body);
+    const limit = checkRateLimit(
+      clientRateLimitKey(request, `forgot:${input.email}`),
+      {
+        limit: 4,
+        windowMs: 60_000,
+      },
+    );
+
+    if (!limit.allowed) {
+      return NextResponse.json(
+        {
+          error: "Too many reset requests. Please wait a minute and try again.",
+        },
+        { status: 429 },
+      );
+    }
+
     if (isSupabaseConfigured()) {
       const response = NextResponse.json({
         ok: true,
@@ -33,7 +35,7 @@ export async function POST(request: NextRequest) {
       const { error } = await supabase!.auth.resetPasswordForEmail(
         input.email,
         {
-          redirectTo: `${APP_URL}/auth/callback`,
+          redirectTo: getAuthCallbackUrl(request, "/reset-password"),
         },
       );
 

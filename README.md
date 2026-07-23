@@ -85,9 +85,12 @@ Never expose `SUPABASE_SERVICE_ROLE_KEY` or `IGDB_CLIENT_SECRET` to browser code
 3. Copy the anon public key into `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
 4. Copy the service role key into `SUPABASE_SERVICE_ROLE_KEY` for server-only metadata sync.
 5. Set `NEXT_PUBLIC_APP_URL` to your local or deployed app URL.
-6. In Supabase Auth settings, add redirect URLs:
+6. In Supabase Auth URL settings, set the Site URL to your deployed app URL and add redirect URLs:
    - `http://localhost:8000/auth/callback`
-   - your production URL plus `/auth/callback`
+   - `https://your-domain.example/auth/callback`
+   - `https://your-domain.example/reset-password`
+
+Password reset emails are sent to `/auth/callback?next=/reset-password`; the callback exchanges the Supabase code and then opens `/reset-password`.
 
 ## Database Migration
 

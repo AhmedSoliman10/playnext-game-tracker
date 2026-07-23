@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
+import { getSafeNextPath } from "@/lib/auth/env";
 import { ratingFormSchema } from "@/lib/validation/rating";
+import { resetPasswordSchema } from "@/lib/validation/auth";
 import { canTransitionStatus } from "@/lib/validation/status";
 
 describe("rating validation", () => {
@@ -50,5 +52,29 @@ describe("status transitions", () => {
     expect(canTransitionStatus("played", "want_to_play")).toBe(true);
     expect(canTransitionStatus("not_interested", "playing")).toBe(true);
     expect(canTransitionStatus(null, "skipped")).toBe(true);
+  });
+});
+
+describe("auth validation", () => {
+  it("requires matching reset passwords", () => {
+    expect(
+      resetPasswordSchema.safeParse({
+        password: "playnext-demo",
+        confirmPassword: "playnext-demo",
+      }).success,
+    ).toBe(true);
+
+    expect(
+      resetPasswordSchema.safeParse({
+        password: "playnext-demo",
+        confirmPassword: "different-password",
+      }).success,
+    ).toBe(false);
+  });
+
+  it("keeps auth callback redirects inside the app", () => {
+    expect(getSafeNextPath("/reset-password")).toBe("/reset-password");
+    expect(getSafeNextPath("https://example.com")).toBe("/dashboard");
+    expect(getSafeNextPath("//example.com")).toBe("/dashboard");
   });
 });

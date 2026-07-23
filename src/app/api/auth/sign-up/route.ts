@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { APP_URL, isSupabaseConfigured } from "@/lib/auth/env";
+import {
+  APP_URL,
+  getAuthCallbackUrl,
+  isSupabaseConfigured,
+} from "@/lib/auth/env";
 import {
   createDemoUser,
   DEMO_SESSION_COOKIE,
@@ -11,28 +15,29 @@ import { createSupabaseRouteClient } from "@/lib/supabase/route";
 import { signUpSchema } from "@/lib/validation/auth";
 
 export async function POST(request: NextRequest) {
-  const body = await readJson(request);
-  const input = signUpSchema.parse(body);
-  const limit = checkRateLimit(
-    clientRateLimitKey(request, `sign-up:${input.email}`),
-    {
-      limit: 5,
-      windowMs: 60_000,
-    },
-  );
-
-  if (!limit.allowed) {
-    return NextResponse.json(
-      {
-        error: "Too many sign-up attempts. Please wait a minute and try again.",
-      },
-      { status: 429 },
-    );
-  }
-
-  const response = NextResponse.json({ ok: true, redirectTo: "/dashboard" });
-
   try {
+    const body = await readJson(request);
+    const input = signUpSchema.parse(body);
+    const limit = checkRateLimit(
+      clientRateLimitKey(request, `sign-up:${input.email}`),
+      {
+        limit: 5,
+        windowMs: 60_000,
+      },
+    );
+
+    if (!limit.allowed) {
+      return NextResponse.json(
+        {
+          error:
+            "Too many sign-up attempts. Please wait a minute and try again.",
+        },
+        { status: 429 },
+      );
+    }
+
+    const response = NextResponse.json({ ok: true, redirectTo: "/dashboard" });
+
     if (!isSupabaseConfigured()) {
       const user = createDemoUser(input.email, input.displayName);
       response.cookies.set(DEMO_SESSION_COOKIE, encodeDemoSession(user), {
@@ -46,12 +51,12 @@ export async function POST(request: NextRequest) {
     }
 
     const supabase = createSupabaseRouteClient(request, response);
-    const { error } = await supabase!.auth.signUp({
+    const { data, error } = await supabase!.auth.signUp({
       email: input.email,
       password: input.password,
       options: {
         data: { display_name: input.displayName },
-        emailRedirectTo: `${APP_URL}/auth/callback`,
+        emailRedirectTo: getAuthCallbackUrl(request),
       },
     });
 
@@ -63,6 +68,14 @@ export async function POST(request: NextRequest) {
         },
         { status: 400 },
       );
+    }
+
+    if (!data.session) {
+      return NextResponse.json({
+        ok: true,
+        message:
+          "Account created. Check your email to confirm it, then sign in.",
+      });
     }
 
     return response;

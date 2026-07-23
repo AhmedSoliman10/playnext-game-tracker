@@ -43,6 +43,14 @@ function endpointForMode(mode: AuthMode) {
   return `/api/auth/${mode}`;
 }
 
+function safeRedirectPath(value?: string | null) {
+  if (!value || !value.startsWith("/") || value.startsWith("//")) {
+    return null;
+  }
+
+  return value;
+}
+
 export function AuthForm({ mode, demoMode }: AuthFormProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -91,7 +99,16 @@ export function AuthForm({ mode, demoMode }: AuthFormProps) {
       return;
     }
 
-    router.push(searchParams.get("next") ?? payload.redirectTo ?? "/dashboard");
+    if (mode === "sign-up" && payload.message && !payload.redirectTo) {
+      setServerMessage(payload.message);
+      return;
+    }
+
+    router.push(
+      safeRedirectPath(searchParams.get("next")) ??
+        safeRedirectPath(payload.redirectTo) ??
+        "/dashboard",
+    );
     router.refresh();
   }
 

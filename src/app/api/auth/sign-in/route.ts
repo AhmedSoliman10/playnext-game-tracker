@@ -11,28 +11,29 @@ import { createSupabaseRouteClient } from "@/lib/supabase/route";
 import { signInSchema } from "@/lib/validation/auth";
 
 export async function POST(request: NextRequest) {
-  const body = await readJson(request);
-  const input = signInSchema.parse(body);
-  const limit = checkRateLimit(
-    clientRateLimitKey(request, `sign-in:${input.email}`),
-    {
-      limit: 8,
-      windowMs: 60_000,
-    },
-  );
-
-  if (!limit.allowed) {
-    return NextResponse.json(
-      {
-        error: "Too many sign-in attempts. Please wait a minute and try again.",
-      },
-      { status: 429 },
-    );
-  }
-
-  const response = NextResponse.json({ ok: true, redirectTo: "/dashboard" });
-
   try {
+    const body = await readJson(request);
+    const input = signInSchema.parse(body);
+    const limit = checkRateLimit(
+      clientRateLimitKey(request, `sign-in:${input.email}`),
+      {
+        limit: 8,
+        windowMs: 60_000,
+      },
+    );
+
+    if (!limit.allowed) {
+      return NextResponse.json(
+        {
+          error:
+            "Too many sign-in attempts. Please wait a minute and try again.",
+        },
+        { status: 429 },
+      );
+    }
+
+    const response = NextResponse.json({ ok: true, redirectTo: "/dashboard" });
+
     if (!isSupabaseConfigured()) {
       const user = createDemoUser(input.email);
       response.cookies.set(DEMO_SESSION_COOKIE, encodeDemoSession(user), {
