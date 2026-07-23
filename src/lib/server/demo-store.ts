@@ -46,6 +46,7 @@ async function writeStore(store: DemoStoreFile) {
 async function getUserState(userId: string) {
   const store = await readStore();
   const state = store.users[userId] ?? createEmptyLibraryState();
+  state.discoveryInteractions ??= {};
   store.users[userId] = state;
   return { store, state };
 }
@@ -75,14 +76,31 @@ export async function demoGetLibraryEntries(
   );
 }
 
+export async function demoGetDiscoveryInteractionSlugs(
+  user: UserContext,
+): Promise<string[]> {
+  const { state } = await getUserState(user.userId);
+  const slugs = new Set(Object.keys(state.discoveryInteractions));
+  for (const [slug, userGame] of Object.entries(state.userGames)) {
+    if (userGame.status === "skipped") {
+      slugs.add(slug);
+    }
+  }
+  return [...slugs];
+}
+
 export async function demoUpdateStatus(
   user: UserContext,
   input: StatusUpdateInput,
-): Promise<LibraryEntry> {
+): Promise<LibraryEntry | null> {
   const { store, state } = await getUserState(user.userId);
   const game = await getGame(input.gameSlug);
   const userGame = applyStatusUpdate(state, game, input);
   await writeStore(store);
+
+  if (!userGame) {
+    return null;
+  }
 
   return {
     game,

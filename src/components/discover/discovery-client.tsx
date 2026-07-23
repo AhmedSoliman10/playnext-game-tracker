@@ -54,13 +54,19 @@ interface PostRatingResult {
 export function DiscoveryClient({
   games,
   initialEntries,
+  initialAnsweredSlugs,
 }: {
   games: GameSummary[];
   initialEntries: LibraryEntry[];
+  initialAnsweredSlugs: string[];
 }) {
   const [candidateGames, setCandidateGames] = useState(games);
-  const [entriesBySlug, setEntriesBySlug] = useState(
-    () => new Map(initialEntries.map((entry) => [entry.game.slug, entry])),
+  const [answeredSlugs, setAnsweredSlugs] = useState(
+    () =>
+      new Set([
+        ...initialAnsweredSlugs,
+        ...initialEntries.map((entry) => entry.game.slug),
+      ]),
   );
   const [currentIndex, setCurrentIndex] = useState(0);
   const [ratingOpen, setRatingOpen] = useState(false);
@@ -74,8 +80,8 @@ export function DiscoveryClient({
   const startRef = useRef<{ x: number; y: number } | null>(null);
 
   const unansweredGames = useMemo(
-    () => candidateGames.filter((game) => !entriesBySlug.has(game.slug)),
-    [candidateGames, entriesBySlug],
+    () => candidateGames.filter((game) => !answeredSlugs.has(game.slug)),
+    [answeredSlugs, candidateGames],
   );
   const currentGame = unansweredGames[currentIndex] ?? null;
   const displayedGame =
@@ -89,9 +95,13 @@ export function DiscoveryClient({
   }
 
   function rememberEntry(entry: LibraryEntry) {
-    setEntriesBySlug((current) => {
-      const next = new Map(current);
-      next.set(entry.game.slug, entry);
+    rememberAnsweredSlug(entry.game.slug);
+  }
+
+  function rememberAnsweredSlug(gameSlug: string) {
+    setAnsweredSlugs((current) => {
+      const next = new Set(current);
+      next.add(gameSlug);
       return next;
     });
   }
@@ -129,15 +139,25 @@ export function DiscoveryClient({
         body: JSON.stringify({ gameSlug: currentGame.slug, status }),
       });
       const payload = (await response.json()) as {
-        entry?: LibraryEntry;
+        entry?: LibraryEntry | null;
+        skipped?: boolean;
         error?: string;
       };
-      if (!response.ok || !payload.entry) {
+      if (!response.ok) {
         throw new Error(payload.error ?? "Could not save your answer.");
       }
-      rememberEntry(payload.entry);
+      if (payload.entry) {
+        rememberEntry(payload.entry);
+      } else if (payload.skipped) {
+        rememberAnsweredSlug(currentGame.slug);
+      } else {
+        throw new Error(payload.error ?? "Could not save your answer.");
+      }
 
       if (status === "played") {
+        if (!payload.entry) {
+          throw new Error("Could not start the rating flow.");
+        }
         setRatingGame(currentGame);
         setRatingOpen(true);
       } else {

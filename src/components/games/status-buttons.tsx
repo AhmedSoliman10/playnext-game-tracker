@@ -93,17 +93,25 @@ export function StatusButtons({
         body: JSON.stringify({ gameSlug, status }),
       });
       const payload = (await response.json()) as {
-        entry?: LibraryEntry;
+        entry?: LibraryEntry | null;
+        skipped?: boolean;
+        gameSlug?: string;
         error?: string;
       };
-      if (!response.ok || !payload.entry) {
+      if (!response.ok) {
         throw new Error(payload.error ?? "Could not update status.");
       }
-      onChanged?.(payload.entry);
-      if (!onChanged) {
+      if (payload.entry) {
+        onChanged?.(payload.entry);
+      } else if (payload.skipped) {
+        onRemoved?.(payload.gameSlug ?? gameSlug);
+      } else {
+        throw new Error(payload.error ?? "Could not update status.");
+      }
+      if (!onChanged && !onRemoved) {
         router.refresh();
       }
-      if (status === "played") {
+      if (status === "played" && payload.entry) {
         onPlayed?.();
       }
     } catch (error) {

@@ -85,10 +85,22 @@ test("critical game tracking journey works with keyboard-accessible discovery", 
   await expect(page.getByText(backlogTitle)).toBeVisible();
 
   await page.goto("/discover");
+  const skippedTitle = await page
+    .locator("[data-testid='discovery-card'] h2")
+    .first()
+    .innerText();
   const skipButton = page.getByRole("button", { name: "Skip for now" });
   await skipButton.focus();
   await page.keyboard.press("Enter");
   await expect(page.getByText(/moved to skip for now/i)).toBeVisible();
+  await page.goto("/library");
+  await expect(
+    page.getByRole("heading", { name: skippedTitle, exact: true }),
+  ).toHaveCount(0);
+  await page.goto("/discover");
+  await expect(
+    page.locator("[data-testid='discovery-card'] h2").first(),
+  ).not.toHaveText(skippedTitle);
 });
 
 function escapeRegExp(value: string) {

@@ -3,7 +3,10 @@ import type { GameSummary } from "@/lib/games/types";
 import { getGameProvider } from "@/lib/games/provider";
 import { getRecommendations } from "@/lib/recommendations/scoring";
 import { getCurrentUser } from "@/lib/server/current-user";
-import { getLibraryEntries } from "@/lib/server/library-service";
+import {
+  getDiscoveryInteractionSlugs,
+  getLibraryEntries,
+} from "@/lib/server/library-service";
 
 export const metadata = {
   title: "Discover",
@@ -12,13 +15,21 @@ export const metadata = {
 export default async function DiscoverPage() {
   const user = await getCurrentUser();
   const entries = user ? await getLibraryEntries(user) : [];
-  const games = await getDiscoveryGames(entries);
+  const discoverySlugs = user ? await getDiscoveryInteractionSlugs(user) : [];
+  const games = await getDiscoveryGames(entries, discoverySlugs);
 
-  return <DiscoveryClient games={games} initialEntries={entries} />;
+  return (
+    <DiscoveryClient
+      games={games}
+      initialEntries={entries}
+      initialAnsweredSlugs={discoverySlugs}
+    />
+  );
 }
 
 async function getDiscoveryGames(
   entries: Awaited<ReturnType<typeof getLibraryEntries>>,
+  discoverySlugs: string[],
 ) {
   const provider = getGameProvider();
   const hasTasteSignal = entries.some(
@@ -29,7 +40,10 @@ async function getDiscoveryGames(
     ? 1
     : Math.floor(Math.random() * 6) + 1;
   const candidates = await loadPopularGames(exploratoryPage);
-  const answeredSlugs = new Set(entries.map((entry) => entry.game.slug));
+  const answeredSlugs = new Set([
+    ...entries.map((entry) => entry.game.slug),
+    ...discoverySlugs,
+  ]);
   const unansweredCandidates = candidates.filter(
     (game) => !answeredSlugs.has(game.slug),
   );

@@ -11,6 +11,7 @@ import { canTransitionStatus } from "@/lib/validation/status";
 export interface LibraryState {
   userGames: Record<string, UserGame>;
   ratings: Record<string, Rating>;
+  discoveryInteractions: Record<string, string>;
   activities: ActivityItem[];
 }
 
@@ -18,6 +19,7 @@ export function createEmptyLibraryState(): LibraryState {
   return {
     userGames: {},
     ratings: {},
+    discoveryInteractions: {},
     activities: [],
   };
 }
@@ -56,6 +58,19 @@ export function applyStatusUpdate(
   }
 
   const timestamp = nowIso();
+  state.discoveryInteractions[input.gameSlug] = input.status;
+
+  if (input.status === "skipped") {
+    delete state.userGames[input.gameSlug];
+    state.activities.unshift(
+      activity(game, "status_changed", {
+        status: input.status,
+        gameSlug: input.gameSlug,
+      }),
+    );
+    return null;
+  }
+
   const statusStartedAt =
     input.status === "playing" && !existing?.startedAt
       ? timestamp
@@ -85,6 +100,7 @@ export function applyStatusUpdate(
     activity(game, "status_changed", {
       status: input.status,
       isFavorite: next.isFavorite,
+      gameSlug: input.gameSlug,
     }),
   );
 
@@ -100,7 +116,7 @@ export function applyFavoriteUpdate(
   const timestamp = nowIso();
   const next: UserGame = {
     gameId: game.id,
-    status: existing?.status ?? "skipped",
+    status: existing?.status ?? "want_to_play",
     isFavorite: input.isFavorite,
     finished: existing?.finished ?? null,
     startedAt: existing?.startedAt ?? null,
@@ -174,20 +190,20 @@ export function toLibraryEntries(
   state: LibraryState,
   gamesBySlug: Map<string, GameSummary>,
 ): LibraryEntry[] {
-  const entries: Array<LibraryEntry | null> = Object.entries(
-    state.userGames,
-  ).map(([slug, userGame]) => {
-    const game = gamesBySlug.get(slug);
-    if (!game) {
-      return null;
-    }
+  const entries: Array<LibraryEntry | null> = Object.entries(state.userGames)
+    .filter(([, userGame]) => userGame.status !== "skipped")
+    .map(([slug, userGame]) => {
+      const game = gamesBySlug.get(slug);
+      if (!game) {
+        return null;
+      }
 
-    return {
-      game,
-      userGame,
-      rating: state.ratings[slug] ?? null,
-    };
-  });
+      return {
+        game,
+        userGame,
+        rating: state.ratings[slug] ?? null,
+      };
+    });
 
   return entries
     .filter((entry): entry is LibraryEntry => Boolean(entry))

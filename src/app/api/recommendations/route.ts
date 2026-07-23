@@ -7,7 +7,10 @@ import {
 } from "@/lib/recommendations/scoring";
 import { getCurrentUser } from "@/lib/server/current-user";
 import { errorResponse } from "@/lib/server/http";
-import { getLibraryEntries } from "@/lib/server/library-service";
+import {
+  getDiscoveryInteractionSlugs,
+  getLibraryEntries,
+} from "@/lib/server/library-service";
 
 export async function GET() {
   const user = await getCurrentUser();
@@ -20,6 +23,7 @@ export async function GET() {
 
   try {
     const entries = await getLibraryEntries(user);
+    const discoverySlugs = await getDiscoveryInteractionSlugs(user);
     const hasTasteSignal = entries.some(
       (entry) =>
         (entry.rating?.overallRating ?? 0) > 0 || entry.userGame.isFavorite,
@@ -33,10 +37,16 @@ export async function GET() {
       });
     }
 
+    const answeredSlugs = new Set([
+      ...entries.map((entry) => entry.game.slug),
+      ...discoverySlugs,
+    ]);
+    games = games.filter((game) => !answeredSlugs.has(game.slug));
+
     return NextResponse.json({
       recommendations: hasTasteSignal
         ? getRecommendations(games, entries, 8)
-        : getExploratoryRecommendations(games, entries, 8),
+        : getExploratoryRecommendations(games, answeredSlugs, 8),
     });
   } catch (error) {
     return errorResponse(error, "Could not load recommendations.");
@@ -45,11 +55,9 @@ export async function GET() {
 
 function getExploratoryRecommendations(
   games: GameSummary[],
-  entries: Awaited<ReturnType<typeof getLibraryEntries>>,
+  answeredSlugs: Set<string>,
   limit: number,
 ): Recommendation[] {
-  const answeredSlugs = new Set(entries.map((entry) => entry.game.slug));
-
   return shuffleGames(games)
     .filter((game) => !answeredSlugs.has(game.slug))
     .slice(0, limit)

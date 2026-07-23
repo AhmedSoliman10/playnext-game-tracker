@@ -4,6 +4,7 @@ import { fallbackGameProvider, getGameProvider } from "@/lib/games/provider";
 import { isSupabaseConfigured } from "@/lib/auth/env";
 import {
   demoGetLibraryEntries,
+  demoGetDiscoveryInteractionSlugs,
   demoRemoveFromLibrary,
   demoSaveRating,
   demoUpdateFavorite,
@@ -242,6 +243,7 @@ export async function getLibraryEntries(
     .from("user_games")
     .select("*")
     .eq("user_id", user.userId)
+    .neq("status", "skipped")
     .order("updated_at", { ascending: false });
 
   if (userGamesError) {
@@ -296,6 +298,42 @@ export async function getLibraryEntries(
   return entries.filter((entry): entry is LibraryEntry => Boolean(entry));
 }
 
+export async function getDiscoveryInteractionSlugs(
+  user: UserContext,
+): Promise<string[]> {
+  if (user.isDemo || !isSupabaseConfigured()) {
+    return demoGetDiscoveryInteractionSlugs(user);
+  }
+
+  const supabase = await getSupabaseClient();
+  const { data: interactions, error: interactionsError } = await supabase
+    .from("discovery_interactions")
+    .select("game_id")
+    .eq("user_id", user.userId);
+
+  if (interactionsError) {
+    throwDbError(interactionsError, "Could not load your discovery history.");
+  }
+
+  const gameIds = [
+    ...new Set((interactions ?? []).map((interaction) => interaction.game_id)),
+  ];
+  if (!gameIds.length) {
+    return [];
+  }
+
+  const { data: games, error: gamesError } = await supabase
+    .from("games")
+    .select("slug")
+    .in("id", gameIds);
+
+  if (gamesError) {
+    throwDbError(gamesError, "Could not load discovery games.");
+  }
+
+  return (games ?? []).map((game) => game.slug);
+}
+
 export async function getLibraryEntryBySlug(
   user: UserContext,
   slug: string,
@@ -307,7 +345,7 @@ export async function getLibraryEntryBySlug(
 export async function updateUserGameStatus(
   user: UserContext,
   input: StatusUpdateInput,
-): Promise<LibraryEntry> {
+): Promise<LibraryEntry | null> {
   if (user.isDemo || !isSupabaseConfigured()) {
     return demoUpdateStatus(user, input);
   }
@@ -332,6 +370,40 @@ export async function updateUserGameStatus(
 
   if (!canTransitionStatus(existing?.status, input.status)) {
     throw new Error("That status change is not available.");
+  }
+
+  if (input.status === "skipped") {
+    const { error: discoveryError } = await supabase
+      .from("discovery_interactions")
+      .insert({
+        user_id: user.userId,
+        game_id: gameRow.id,
+        action: input.status,
+      });
+
+    if (discoveryError) {
+      throwDbError(
+        discoveryError,
+        "Could not save that game to your discovery history.",
+      );
+    }
+
+    if (existing) {
+      const { error: deleteError } = await supabase
+        .from("user_games")
+        .delete()
+        .eq("user_id", user.userId)
+        .eq("game_id", gameRow.id);
+
+      if (deleteError) {
+        throwDbError(
+          deleteError,
+          "Could not remove the skipped game from your library.",
+        );
+      }
+    }
+
+    return null;
   }
 
   const timestamp = new Date().toISOString();
@@ -415,7 +487,7 @@ export async function updateFavorite(
     {
       user_id: user.userId,
       game_id: gameRow.id,
-      status: existing?.status ?? "skipped",
+      status: existing?.status ?? "want_to_play",
       is_favorite: input.isFavorite,
       finished: existing?.finished ?? null,
       started_at: existing?.started_at ?? null,

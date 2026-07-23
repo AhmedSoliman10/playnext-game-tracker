@@ -3,6 +3,7 @@ import { seedGames } from "@/lib/games/seed-data";
 import { filterLibraryEntries } from "@/lib/library/filter";
 import { getRecommendations } from "@/lib/recommendations/scoring";
 import {
+  applyFavoriteUpdate,
   applyLibraryRemoval,
   applyRatingSave,
   applyStatusUpdate,
@@ -100,6 +101,34 @@ describe("library integration rules", () => {
         (entry) => entry.game.slug,
       ),
     ).toEqual(["celeste"]);
+  });
+
+  it("keeps skipped games out of the library while remembering discovery history", () => {
+    const state = createEmptyLibraryState();
+    const userGame = applyStatusUpdate(state, game("hades"), {
+      gameSlug: "hades",
+      status: "skipped",
+    });
+    const entries = toLibraryEntries(
+      state,
+      new Map([[game("hades").slug, game("hades")]]),
+    );
+
+    expect(userGame).toBeNull();
+    expect(state.userGames.hades).toBeUndefined();
+    expect(state.discoveryInteractions.hades).toBe("skipped");
+    expect(entries).toEqual([]);
+  });
+
+  it("uses want-to-play as the first library status when favoriting a new game", () => {
+    const state = createEmptyLibraryState();
+    applyFavoriteUpdate(state, game("hades"), {
+      gameSlug: "hades",
+      isFavorite: true,
+    });
+
+    expect(state.userGames.hades.status).toBe("want_to_play");
+    expect(state.userGames.hades.isFavorite).toBe(true);
   });
 
   it("removes a game status and rating from the user's library", () => {

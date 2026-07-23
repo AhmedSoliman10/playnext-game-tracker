@@ -55,8 +55,11 @@ export async function POST(request: Request) {
 
   try {
     const input = statusUpdateSchema.parse(await readJson(request));
+    const entry = await updateUserGameStatus(user, input);
     return NextResponse.json({
-      entry: await updateUserGameStatus(user, input),
+      entry,
+      skipped: input.status === "skipped",
+      gameSlug: input.gameSlug,
     });
   } catch (error) {
     return errorResponse(error, "Could not update your game status.");

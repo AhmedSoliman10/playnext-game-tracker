@@ -255,7 +255,6 @@ export function SearchClient({
             <option value="want_to_play">Want to play</option>
             <option value="dropped">Dropped</option>
             <option value="not_interested">Not interested</option>
-            <option value="skipped">Skipped</option>
           </select>
         </div>
         <div className="space-y-2">
