@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Loader2 } from "lucide-react";
+import { Loader2, MessageCircle } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
@@ -54,14 +54,27 @@ function safeRedirectPath(value?: string | null) {
 export function AuthForm({ mode, demoMode }: AuthFormProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const verifiedState = searchParams.get("verified");
+  const oauthError = searchParams.get("oauth_error");
+  const discordHref = `/api/auth/discord?next=${encodeURIComponent(
+    safeRedirectPath(searchParams.get("next")) ?? "/dashboard",
+  )}`;
   const [serverMessage, setServerMessage] = useState<string | null>(
-    mode === "sign-in" && searchParams.get("verified") === "1"
+    mode === "sign-in" && verifiedState === "1"
       ? "Your email is verified. You can sign in now."
-      : mode === "sign-in" && searchParams.get("created") === "1"
-        ? "Account created. Check your email to verify it, then sign in."
+      : mode === "sign-in" && verifiedState === "maybe"
+        ? "That confirmation link was already used or expired. Try signing in now; if Supabase says the email is not verified, request a fresh confirmation email."
+        : mode === "sign-in" && searchParams.get("created") === "1"
+          ? "Account created. Check your email to verify it, then sign in."
+          : null,
+  );
+  const [serverError, setServerError] = useState<string | null>(
+    mode !== "forgot-password" && oauthError === "supabase"
+      ? "Supabase authentication is not configured for this deployment."
+      : mode !== "forgot-password" && oauthError === "discord"
+        ? "Discord sign-in is not enabled in Supabase yet. Add the Discord Client ID and Secret in Supabase, then try again."
         : null,
   );
-  const [serverError, setServerError] = useState<string | null>(null);
   const {
     register,
     handleSubmit,
@@ -218,6 +231,35 @@ export function AuthForm({ mode, demoMode }: AuthFormProps) {
             ? "Send reset link"
             : "Sign in"}
       </Button>
+
+      {mode !== "forgot-password" ? (
+        <>
+          <div className="flex items-center gap-3 text-xs uppercase tracking-wide text-zinc-500">
+            <span className="h-px flex-1 bg-border" />
+            or
+            <span className="h-px flex-1 bg-border" />
+          </div>
+          {demoMode ? (
+            <Button
+              type="button"
+              variant="secondary"
+              className="w-full"
+              disabled
+              title="Discord sign-in needs Supabase authentication to be configured."
+            >
+              <MessageCircle className="h-4 w-4" aria-hidden />
+              Continue with Discord
+            </Button>
+          ) : (
+            <Button asChild variant="secondary" className="w-full">
+              <Link href={discordHref}>
+                <MessageCircle className="h-4 w-4" aria-hidden />
+                Continue with Discord
+              </Link>
+            </Button>
+          )}
+        </>
+      ) : null}
 
       <div className="flex flex-wrap justify-between gap-3 text-sm text-zinc-400">
         {mode !== "sign-in" ? (

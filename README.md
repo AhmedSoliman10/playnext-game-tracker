@@ -94,6 +94,45 @@ Never expose `SUPABASE_SERVICE_ROLE_KEY` or `IGDB_CLIENT_SECRET` to browser code
 
 Password reset emails are sent to `/auth/confirm?next=/reset-password`; the client confirmation page handles both PKCE `code` links and hash-token recovery links before opening `/reset-password`.
 
+## Custom SMTP For Auth Emails
+
+Supabase's default email sender is only for demos and has strict rate limits. Configure a custom SMTP sender before opening sign-ups publicly.
+
+For Gmail SMTP:
+
+1. Create a dedicated Gmail or Google Workspace mailbox for auth email.
+2. Turn on 2-Step Verification for that Google account.
+3. Create an App Password for PlayNext.
+4. In Supabase, open Authentication -> Settings -> SMTP Settings.
+5. Enable Custom SMTP and use:
+   - Sender email: the Gmail address
+   - Sender name: `PlayNext`
+   - SMTP host: `smtp.gmail.com`
+   - SMTP port: `587`
+   - SMTP username: the Gmail address
+   - SMTP password: the Google App Password, not the normal Gmail password
+6. Save and send a test sign-up/password-reset email.
+
+Gmail is fine for early testing, but a transactional provider such as Resend, Postmark, SendGrid, or AWS SES is a better long-term production choice.
+
+## Discord OAuth Setup
+
+The app includes a Discord sign-in button and `/api/auth/discord` OAuth starter route. Supabase still needs the Discord provider credentials.
+
+1. In Supabase, open Authentication -> Providers -> Discord.
+2. Copy the Supabase callback URL shown there. It looks like:
+   - `https://your-project-ref.supabase.co/auth/v1/callback`
+3. In the Discord Developer Portal, create a PlayNext application.
+4. Open OAuth2 and add the Supabase callback URL under Redirects.
+5. Copy the Discord Client ID and Client Secret.
+6. Paste them into Supabase's Discord provider settings and enable Discord.
+7. In Supabase Auth URL settings, keep these PlayNext redirect URLs:
+   - `https://playnext-game-tracker.vercel.app/auth/callback`
+   - `https://playnext-game-tracker.vercel.app/auth/confirm`
+   - `http://localhost:8000/auth/callback`
+   - `http://localhost:8000/auth/confirm`
+8. Redeploy or refresh the app, then use Continue with Discord on `/login` or `/signup`.
+
 ## Database Migration
 
 Run the migration in `supabase/migrations/202607180001_playnext_initial_schema.sql` using the Supabase SQL editor or CLI.
@@ -211,7 +250,6 @@ Good first areas:
 
 ## Roadmap
 
-- OAuth provider configuration.
 - User-controlled discovery reset.
 - Server-side pagination for very large Supabase libraries.
 - Richer recommendation tuning controls.
@@ -222,7 +260,7 @@ Good first areas:
 ## Known Limitations
 
 - Demo mode is for local development and stores library data in `.playnext-data/demo-store.json`.
-- OAuth providers are not enabled by default.
+- Discord OAuth needs provider credentials enabled in Supabase before it can complete sign-in.
 - Recommendation templates are deterministic and do not call an AI API.
 - Live IGDB metadata sync needs `SUPABASE_SERVICE_ROLE_KEY` if games are not already seeded in Supabase.
 

@@ -32,17 +32,32 @@ export function AuthConfirmClient() {
 
       const next = safeNext(searchParams.get("next"));
       const code = searchParams.get("code");
+      const signInFallback = next.startsWith("/login")
+        ? "/login?verified=maybe"
+        : null;
 
       if (code) {
         const { error: exchangeError } =
           await supabase.auth.exchangeCodeForSession(code);
         if (exchangeError) {
+          if (signInFallback) {
+            router.replace(signInFallback);
+            router.refresh();
+            return;
+          }
+
           setError("This authentication link is invalid or expired.");
           return;
         }
       } else {
         const { data, error: sessionError } = await supabase.auth.getSession();
         if (sessionError || !data.session) {
+          if (signInFallback) {
+            router.replace(signInFallback);
+            router.refresh();
+            return;
+          }
+
           setError("This authentication link is invalid or expired.");
           return;
         }
