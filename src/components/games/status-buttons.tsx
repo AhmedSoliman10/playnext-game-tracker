@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import {
   Check,
   Clock,
+  Eye,
   EyeOff,
   Heart,
   PauseCircle,
@@ -78,10 +79,11 @@ export function StatusButtons({
 }) {
   const router = useRouter();
   const [busyStatus, setBusyStatus] = useState<
-    GameStatus | "favorite" | "remove" | null
+    GameStatus | "favorite" | "remove" | "unhide" | null
   >(null);
   const [error, setError] = useState<string | null>(null);
   const [localFavorite, setLocalFavorite] = useState(Boolean(favorite));
+  const isHidden = currentStatus === "not_interested";
 
   async function updateStatus(status: GameStatus) {
     setBusyStatus(status);
@@ -191,6 +193,41 @@ export function StatusButtons({
     }
   }
 
+  async function unhideGame() {
+    setBusyStatus("unhide");
+    setError(null);
+    try {
+      const response = await fetch("/api/user-games", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ gameSlug }),
+      });
+      const payload = (await response.json()) as {
+        ok?: boolean;
+        entry?: LibraryEntry | null;
+        gameSlug?: string;
+        error?: string;
+      };
+      if (!response.ok || !payload.ok) {
+        throw new Error(payload.error ?? "Could not unhide this game.");
+      }
+      if (payload.entry) {
+        onChanged?.(payload.entry);
+      } else {
+        onRemoved?.(payload.gameSlug ?? gameSlug);
+      }
+      if (!onChanged && !onRemoved) {
+        router.refresh();
+      }
+    } catch (error) {
+      setError(
+        error instanceof Error ? error.message : "Could not unhide this game.",
+      );
+    } finally {
+      setBusyStatus(null);
+    }
+  }
+
   if (compact) {
     return (
       <div className="space-y-2">
@@ -230,6 +267,19 @@ export function StatusButtons({
               </Button>
             );
           })}
+          {isHidden ? (
+            <Button
+              type="button"
+              variant="secondary"
+              size="icon"
+              onClick={unhideGame}
+              disabled={busyStatus !== null}
+              aria-label="Unhide from library"
+              title="Unhide"
+            >
+              <Eye className="h-4 w-4" />
+            </Button>
+          ) : null}
           {removable ? (
             <Button
               type="button"
@@ -282,6 +332,18 @@ export function StatusButtons({
             </Button>
           );
         })}
+        {isHidden ? (
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={unhideGame}
+            disabled={busyStatus !== null}
+            className="h-auto min-h-11 whitespace-normal px-3 py-2 text-center leading-tight"
+          >
+            <Eye className="h-4 w-4" />
+            Unhide
+          </Button>
+        ) : null}
         {removable ? (
           <Button
             type="button"

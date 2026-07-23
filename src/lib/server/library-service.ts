@@ -7,6 +7,7 @@ import {
   demoGetDiscoveryInteractionSlugs,
   demoRemoveFromLibrary,
   demoSaveRating,
+  demoUnhideGame,
   demoUpdateFavorite,
   demoUpdateStatus,
 } from "@/lib/server/demo-store";
@@ -21,6 +22,7 @@ import type {
   FavoriteUpdateInput,
   RemoveUserGameInput,
   StatusUpdateInput,
+  UnhideUserGameInput,
 } from "@/lib/validation/status";
 import { canTransitionStatus } from "@/lib/validation/status";
 import { slugify } from "@/lib/utils";
@@ -622,4 +624,101 @@ export async function removeFromLibrary(
   if (userGameError) {
     throwDbError(userGameError, "Could not remove the game from your library.");
   }
+}
+
+export async function unhideGame(
+  user: UserContext,
+  input: UnhideUserGameInput,
+): Promise<LibraryEntry | null> {
+  if (user.isDemo || !isSupabaseConfigured()) {
+    return demoUnhideGame(user, input);
+  }
+
+  const supabase = await getSupabaseClient();
+  const gameRow = await getGameRowBySlug(supabase, input.gameSlug);
+  if (!gameRow) {
+    return null;
+  }
+
+  const { error: discoveryError } = await supabase
+    .from("discovery_interactions")
+    .delete()
+    .eq("user_id", user.userId)
+    .eq("game_id", gameRow.id);
+
+  if (discoveryError) {
+    throwDbError(discoveryError, "Could not reset that discovery decision.");
+  }
+
+  const { data: existing, error: existingError } = await supabase
+    .from("user_games")
+    .select("*")
+    .eq("user_id", user.userId)
+    .eq("game_id", gameRow.id)
+    .maybeSingle();
+
+  if (existingError) {
+    throwDbError(existingError, "Could not check the hidden game.");
+  }
+
+  if (!existing) {
+    return null;
+  }
+
+  if (existing.status !== "not_interested") {
+    return getLibraryEntryBySlug(user, input.gameSlug);
+  }
+
+  const { data: rating, error: ratingError } = await supabase
+    .from("ratings")
+    .select("id")
+    .eq("user_id", user.userId)
+    .eq("game_id", gameRow.id)
+    .maybeSingle();
+
+  if (ratingError) {
+    throwDbError(ratingError, "Could not check your rating for that game.");
+  }
+
+  const nextStatus = rating
+    ? "played"
+    : existing.is_favorite
+      ? "want_to_play"
+      : null;
+
+  if (!nextStatus) {
+    const { error: deleteError } = await supabase
+      .from("user_games")
+      .delete()
+      .eq("user_id", user.userId)
+      .eq("game_id", gameRow.id);
+
+    if (deleteError) {
+      throwDbError(deleteError, "Could not unhide that game.");
+    }
+
+    return null;
+  }
+
+  const { error: updateError } = await supabase
+    .from("user_games")
+    .update({
+      status: nextStatus,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("user_id", user.userId)
+    .eq("game_id", gameRow.id);
+
+  if (updateError) {
+    throwDbError(updateError, "Could not unhide that game.");
+  }
+
+  await supabase.from("activity_log").insert({
+    user_id: user.userId,
+    game_id: gameRow.id,
+    activity_type: "status_changed",
+    metadata: { status: nextStatus },
+  });
+
+  return getLibraryEntryBySlug(user, input.gameSlug);
 }

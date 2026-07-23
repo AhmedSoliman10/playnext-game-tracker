@@ -21,6 +21,7 @@ const tabs: Array<{ href: string; label: string; filter: LibraryFilter }> = [
     filter: "want_to_play",
   },
   { href: "/library/dropped", label: "Dropped", filter: "dropped" },
+  { href: "/library/hidden", label: "Hidden", filter: "hidden" },
   { href: "/library/favorites", label: "Favorites", filter: "favorites" },
   {
     href: "/library/unrated",

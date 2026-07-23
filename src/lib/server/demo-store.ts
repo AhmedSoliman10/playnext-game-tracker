@@ -8,10 +8,12 @@ import type {
   FavoriteUpdateInput,
   RemoveUserGameInput,
   StatusUpdateInput,
+  UnhideUserGameInput,
 } from "@/lib/validation/status";
 import {
-  applyLibraryRemoval,
   applyFavoriteUpdate,
+  applyLibraryRemoval,
+  applyLibraryUnhide,
   applyRatingSave,
   applyStatusUpdate,
   createEmptyLibraryState,
@@ -148,4 +150,22 @@ export async function demoRemoveFromLibrary(
   const { store, state } = await getUserState(user.userId);
   applyLibraryRemoval(state, input);
   await writeStore(store);
+}
+
+export async function demoUnhideGame(
+  user: UserContext,
+  input: UnhideUserGameInput,
+): Promise<LibraryEntry | null> {
+  const { store, state } = await getUserState(user.userId);
+  const game = await getGame(input.gameSlug);
+  const userGame = applyLibraryUnhide(state, game, input);
+  await writeStore(store);
+
+  return userGame
+    ? {
+        game,
+        userGame,
+        rating: state.ratings[input.gameSlug] ?? null,
+      }
+    : null;
 }

@@ -5,7 +5,10 @@ export function filterLibraryEntries(
   filter: LibraryFilter,
 ) {
   if (filter === "favorites") {
-    return entries.filter((entry) => entry.userGame.isFavorite);
+    return entries.filter(
+      (entry) =>
+        entry.userGame.isFavorite && entry.userGame.status !== "not_interested",
+    );
   }
 
   if (filter === "unrated") {
@@ -15,7 +18,15 @@ export function filterLibraryEntries(
   }
 
   if (filter === "all") {
-    return entries;
+    return entries.filter(
+      (entry) => entry.userGame.status !== "not_interested",
+    );
+  }
+
+  if (filter === "hidden") {
+    return entries.filter(
+      (entry) => entry.userGame.status === "not_interested",
+    );
   }
 
   return entries.filter((entry) => entry.userGame.status === filter);

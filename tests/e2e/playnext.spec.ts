@@ -101,6 +101,21 @@ test("critical game tracking journey works with keyboard-accessible discovery", 
   await expect(
     page.locator("[data-testid='discovery-card'] h2").first(),
   ).not.toHaveText(skippedTitle);
+
+  const hiddenTitle = await page
+    .locator("[data-testid='discovery-card'] h2")
+    .first()
+    .innerText();
+  await page.getByRole("button", { name: "I am not interested" }).click();
+  await expect(page.getByText(/moved to i am not interested/i)).toBeVisible();
+  await page.goto("/library");
+  await expect(
+    page.getByRole("heading", { name: hiddenTitle, exact: true }),
+  ).toHaveCount(0);
+  await page.goto("/library/hidden");
+  await expect(page.getByText(hiddenTitle)).toBeVisible();
+  await page.getByRole("button", { name: "Unhide from library" }).click();
+  await expect(page.getByText(hiddenTitle)).toHaveCount(0);
 });
 
 function escapeRegExp(value: string) {

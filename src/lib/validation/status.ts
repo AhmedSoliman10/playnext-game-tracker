@@ -19,9 +19,14 @@ export const removeUserGameSchema = z.object({
   gameSlug: z.string().min(1).max(160),
 });
 
+export const unhideUserGameSchema = z.object({
+  gameSlug: z.string().min(1).max(160),
+});
+
 export type StatusUpdateInput = z.infer<typeof statusUpdateSchema>;
 export type FavoriteUpdateInput = z.infer<typeof favoriteUpdateSchema>;
 export type RemoveUserGameInput = z.infer<typeof removeUserGameSchema>;
+export type UnhideUserGameInput = z.infer<typeof unhideUserGameSchema>;
 
 const allowedTransitions: Record<
   z.infer<typeof gameStatusSchema>,

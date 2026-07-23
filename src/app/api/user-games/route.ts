@@ -5,6 +5,7 @@ import { checkRateLimit } from "@/lib/server/rate-limit";
 import {
   getLibraryEntries,
   removeFromLibrary,
+  unhideGame,
   updateFavorite,
   updateUserGameStatus,
 } from "@/lib/server/library-service";
@@ -12,6 +13,7 @@ import {
   favoriteUpdateSchema,
   removeUserGameSchema,
   statusUpdateSchema,
+  unhideUserGameSchema,
 } from "@/lib/validation/status";
 
 export async function GET() {
@@ -80,6 +82,41 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ entry: await updateFavorite(user, input) });
   } catch (error) {
     return errorResponse(error, "Could not update favorite.");
+  }
+}
+
+export async function PUT(request: Request) {
+  const user = await getCurrentUser();
+  if (!user) {
+    return NextResponse.json(
+      { error: "Please sign in first." },
+      { status: 401 },
+    );
+  }
+
+  const limit = checkRateLimit(`unhide:${user.userId}`, {
+    limit: 30,
+    windowMs: 60_000,
+  });
+  if (!limit.allowed) {
+    return NextResponse.json(
+      {
+        error:
+          "You are unhiding games very quickly. Please pause for a moment.",
+      },
+      { status: 429 },
+    );
+  }
+
+  try {
+    const input = unhideUserGameSchema.parse(await readJson(request));
+    return NextResponse.json({
+      ok: true,
+      entry: await unhideGame(user, input),
+      gameSlug: input.gameSlug,
+    });
+  } catch (error) {
+    return errorResponse(error, "Could not unhide that game.");
   }
 }
 

@@ -5,6 +5,7 @@ import { getRecommendations } from "@/lib/recommendations/scoring";
 import {
   applyFavoriteUpdate,
   applyLibraryRemoval,
+  applyLibraryUnhide,
   applyRatingSave,
   applyStatusUpdate,
   createEmptyLibraryState,
@@ -103,6 +104,23 @@ describe("library integration rules", () => {
     ).toEqual(["celeste"]);
   });
 
+  it("keeps hidden games out of all games while showing them in hidden", () => {
+    const state = createEmptyLibraryState();
+    applyStatusUpdate(state, game("hades"), {
+      gameSlug: "hades",
+      status: "not_interested",
+    });
+    const entries = toLibraryEntries(
+      state,
+      new Map([[game("hades").slug, game("hades")]]),
+    );
+
+    expect(filterLibraryEntries(entries, "all")).toEqual([]);
+    expect(
+      filterLibraryEntries(entries, "hidden").map((entry) => entry.game.slug),
+    ).toEqual(["hades"]);
+  });
+
   it("keeps skipped games out of the library while remembering discovery history", () => {
     const state = createEmptyLibraryState();
     const userGame = applyStatusUpdate(state, game("hades"), {
@@ -129,6 +147,50 @@ describe("library integration rules", () => {
 
     expect(state.userGames.hades.status).toBe("want_to_play");
     expect(state.userGames.hades.isFavorite).toBe(true);
+  });
+
+  it("unhides a plain hidden game and clears the discovery decision", () => {
+    const state = createEmptyLibraryState();
+    applyStatusUpdate(state, game("hades"), {
+      gameSlug: "hades",
+      status: "not_interested",
+    });
+
+    const userGame = applyLibraryUnhide(state, game("hades"), {
+      gameSlug: "hades",
+    });
+
+    expect(userGame).toBeNull();
+    expect(state.userGames.hades).toBeUndefined();
+    expect(state.discoveryInteractions.hades).toBeUndefined();
+  });
+
+  it("unhides a rated hidden game back to played without losing the rating", () => {
+    const state = createEmptyLibraryState();
+    applyRatingSave(state, game("hades"), {
+      gameSlug: "hades",
+      overallRating: 9,
+      storyRating: null,
+      gameplayRating: 9,
+      visualsRating: null,
+      soundtrackRating: null,
+      difficultyRating: null,
+      wouldRecommend: true,
+      finished: true,
+      review: "Great run-based action.",
+    });
+    applyStatusUpdate(state, game("hades"), {
+      gameSlug: "hades",
+      status: "not_interested",
+    });
+
+    const userGame = applyLibraryUnhide(state, game("hades"), {
+      gameSlug: "hades",
+    });
+
+    expect(userGame?.status).toBe("played");
+    expect(state.ratings.hades.overallRating).toBe(9);
+    expect(state.discoveryInteractions.hades).toBeUndefined();
   });
 
   it("removes a game status and rating from the user's library", () => {

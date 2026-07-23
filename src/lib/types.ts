@@ -41,6 +41,7 @@ export type LibraryFilter =
   | "playing"
   | "want_to_play"
   | "dropped"
+  | "hidden"
   | "favorites"
   | "unrated";
 

@@ -5,6 +5,7 @@ import type {
   FavoriteUpdateInput,
   RemoveUserGameInput,
   StatusUpdateInput,
+  UnhideUserGameInput,
 } from "@/lib/validation/status";
 import { canTransitionStatus } from "@/lib/validation/status";
 
@@ -184,6 +185,46 @@ export function applyLibraryRemoval(
   delete state.userGames[input.gameSlug];
   delete state.ratings[input.gameSlug];
   return existed;
+}
+
+export function applyLibraryUnhide(
+  state: LibraryState,
+  game: GameSummary,
+  input: UnhideUserGameInput,
+) {
+  delete state.discoveryInteractions[input.gameSlug];
+
+  const existing = state.userGames[input.gameSlug];
+  if (!existing || existing.status !== "not_interested") {
+    return existing ?? null;
+  }
+
+  const timestamp = nowIso();
+  const rating = state.ratings[input.gameSlug];
+  if (rating || existing.isFavorite) {
+    const next: UserGame = {
+      ...existing,
+      status: rating ? "played" : "want_to_play",
+      updatedAt: timestamp,
+    };
+    state.userGames[input.gameSlug] = next;
+    state.activities.unshift(
+      activity(game, "status_changed", {
+        status: next.status,
+        gameSlug: input.gameSlug,
+      }),
+    );
+    return next;
+  }
+
+  delete state.userGames[input.gameSlug];
+  state.activities.unshift(
+    activity(game, "status_changed", {
+      status: null,
+      gameSlug: input.gameSlug,
+    }),
+  );
+  return null;
 }
 
 export function toLibraryEntries(
