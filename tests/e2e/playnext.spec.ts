@@ -2,6 +2,24 @@ import { expect, test } from "@playwright/test";
 
 test.setTimeout(120_000);
 
+test("popular carousel moves automatically on the landing page", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const rail = page.getByTestId("popular-carousel-rail").first();
+  await expect(rail).toBeVisible();
+
+  const initialScrollLeft = await rail.evaluate(
+    (element) => element.scrollLeft,
+  );
+  await expect
+    .poll(() => rail.evaluate((element) => element.scrollLeft), {
+      message: "popular carousel should advance without a click",
+      timeout: 5_000,
+    })
+    .toBeGreaterThan(initialScrollLeft + 10);
+});
+
 test("critical game tracking journey works with keyboard-accessible discovery", async ({
   page,
 }) => {
