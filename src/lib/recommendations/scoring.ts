@@ -95,6 +95,22 @@ function yearAffinity(game: GameSummary, preferredYears: number[]) {
   return Math.max(0, 2 - distance / 8);
 }
 
+function overlappingHighRatedGame(
+  game: GameSummary,
+  highRatedGames: GameSummary[],
+) {
+  return highRatedGames.find((ratedGame) => {
+    const genreOverlap = game.genres.some((genre) =>
+      ratedGame.genres.includes(genre),
+    );
+    const platformOverlap = game.platforms.some((platform) =>
+      ratedGame.platforms.includes(platform),
+    );
+
+    return genreOverlap && platformOverlap;
+  });
+}
+
 export function scoreGameForRecommendation(
   game: GameSummary,
   profile: RecommendationProfile,
@@ -121,13 +137,22 @@ export function scoreGameForRecommendation(
   const matchingGenres = game.genres.filter((genre) =>
     profile.favoriteGenres.has(genre),
   );
-  for (const genre of matchingGenres) {
+  const rankedMatchingGenres = matchingGenres.sort(
+    (a, b) =>
+      (profile.favoriteGenres.get(b) ?? 0) -
+      (profile.favoriteGenres.get(a) ?? 0),
+  );
+  for (const genre of rankedMatchingGenres) {
     score += (profile.favoriteGenres.get(genre) ?? 0) * 2;
   }
 
-  if (matchingGenres.length > 0) {
+  if (rankedMatchingGenres.length > 1) {
     reasons.push(
-      `Recommended because you rated ${matchingGenres.slice(0, 2).join(" and ")} games highly.`,
+      `Recommended because it shares ${rankedMatchingGenres.slice(0, 2).join(" and ")} with games you rated highly.`,
+    );
+  } else if (rankedMatchingGenres.length === 1) {
+    reasons.push(
+      `Recommended because ${rankedMatchingGenres[0]} is one of your stronger genres.`,
     );
   }
 
@@ -147,11 +172,15 @@ export function scoreGameForRecommendation(
     reasons.push("It also has a strong external rating.");
   } else if (externalRating >= 7.5) {
     score += 1.5;
+    reasons.push("Its external rating is solid enough to be worth a look.");
   }
 
   const releaseYearScore = yearAffinity(game, profile.preferredYears);
   if (releaseYearScore > 0) {
     score += releaseYearScore;
+    if (releaseYearScore >= 1.25) {
+      reasons.push("Its release era matches games you tend to rate well.");
+    }
   }
 
   const similarityBoost = profile.highRatedGames.reduce((sum, ratedGame) => {
@@ -164,6 +193,14 @@ export function scoreGameForRecommendation(
     return sum + genreOverlap * 0.8 + platformOverlap * 0.25;
   }, 0);
   score += Math.min(similarityBoost, 4);
+  if (similarityBoost >= 1.5) {
+    const source = overlappingHighRatedGame(game, profile.highRatedGames);
+    reasons.push(
+      source
+        ? `It looks close to ${source.title}, one of your stronger ratings.`
+        : "It overlaps with multiple games you rated highly.",
+    );
+  }
 
   if (reasons.length === 0) {
     reasons.push("Recommended as a fresh pick from the PlayNext catalog.");

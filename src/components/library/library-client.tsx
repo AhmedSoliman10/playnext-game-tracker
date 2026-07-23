@@ -2,9 +2,11 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { LibraryBig } from "lucide-react";
 import { GameCard } from "@/components/games/game-card";
 import { RatingDialog } from "@/components/games/rating-dialog";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import type { GameSummary } from "@/lib/games/types";
 import { filterLibraryEntries } from "@/lib/library/filter";
 import type { LibraryEntry, LibraryFilter } from "@/lib/types";
@@ -93,12 +95,15 @@ export function LibraryClient({
       </nav>
 
       {filtered.length === 0 ? (
-        <div className="rounded-lg border bg-panel p-8 text-center">
-          <h2 className="text-xl font-bold">No games here yet.</h2>
-          <p className="mt-2 text-zinc-400">
-            Answer a few discovery cards and this list will fill itself.
-          </p>
-        </div>
+        <EmptyState
+          icon={LibraryBig}
+          title="No games here yet."
+          description="Answer a few discovery cards or search for a favorite title. PlayNext will keep the list updated from your choices."
+          actionHref="/discover"
+          actionLabel="Open discovery"
+          secondaryHref="/search"
+          secondaryLabel="Search games"
+        />
       ) : (
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
           {filtered.map((entry, index) => (

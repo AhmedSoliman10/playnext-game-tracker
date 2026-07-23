@@ -1,5 +1,6 @@
 "use client";
 
+import type { EmailOtpType } from "@supabase/supabase-js";
 import { Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -8,6 +9,15 @@ import { Button } from "@/components/ui/button";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 type AuthConfirmFlow = "signup" | "reset" | "generic";
+
+const EMAIL_OTP_TYPES = new Set<string>([
+  "signup",
+  "invite",
+  "magiclink",
+  "recovery",
+  "email_change",
+  "email",
+]);
 
 function safeNext(value: string | null) {
   if (!value || !value.startsWith("/") || value.startsWith("//")) {
@@ -27,6 +37,30 @@ function nextForFlow(flow: AuthConfirmFlow, queryNext: string | null) {
   }
 
   return safeNext(queryNext);
+}
+
+function isEmailOtpType(value: string | null): value is EmailOtpType {
+  return Boolean(value && EMAIL_OTP_TYPES.has(value));
+}
+
+function hashParams() {
+  if (typeof window === "undefined" || !window.location.hash) {
+    return new URLSearchParams();
+  }
+
+  return new URLSearchParams(window.location.hash.replace(/^#/, ""));
+}
+
+function missingTokenMessage(flow: AuthConfirmFlow) {
+  if (flow === "reset") {
+    return "This reset link did not include a valid Supabase token. Request a fresh reset email, and make sure the Supabase email template button uses {{ .ConfirmationURL }}.";
+  }
+
+  if (flow === "signup") {
+    return "This verification link did not include a valid Supabase token. Try signing in if you already verified, or request a fresh confirmation email.";
+  }
+
+  return "This authentication link is invalid or expired.";
 }
 
 export function AuthConfirmClient({
@@ -50,6 +84,12 @@ export function AuthConfirmClient({
 
       const next = nextForFlow(flow, searchParams.get("next"));
       const code = searchParams.get("code");
+      const tokenHash =
+        searchParams.get("token_hash") ?? searchParams.get("token");
+      const tokenType = searchParams.get("type");
+      const currentHashParams = hashParams();
+      const accessToken = currentHashParams.get("access_token");
+      const refreshToken = currentHashParams.get("refresh_token");
       const signInFallback =
         flow === "signup" || next.startsWith("/login")
           ? "/login?verified=maybe"
@@ -68,6 +108,32 @@ export function AuthConfirmClient({
           setError("This authentication link is invalid or expired.");
           return;
         }
+      } else if (tokenHash && isEmailOtpType(tokenType)) {
+        const { error: verifyError } = await supabase.auth.verifyOtp({
+          token_hash: tokenHash,
+          type: tokenType,
+        });
+
+        if (verifyError) {
+          if (signInFallback) {
+            router.replace(signInFallback);
+            router.refresh();
+            return;
+          }
+
+          setError("This authentication link is invalid or expired.");
+          return;
+        }
+      } else if (accessToken && refreshToken) {
+        const { error: setSessionError } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken,
+        });
+
+        if (setSessionError) {
+          setError("This authentication link is invalid or expired.");
+          return;
+        }
       } else {
         const { data, error: sessionError } = await supabase.auth.getSession();
         if (sessionError || !data.session) {
@@ -77,7 +143,7 @@ export function AuthConfirmClient({
             return;
           }
 
-          setError("This authentication link is invalid or expired.");
+          setError(missingTokenMessage(flow));
           return;
         }
       }

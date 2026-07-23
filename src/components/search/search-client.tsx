@@ -2,9 +2,10 @@
 
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { ChevronLeft, ChevronRight, Search, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Search, SearchX, X } from "lucide-react";
 import { GameCard } from "@/components/games/game-card";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { GameSummary } from "@/lib/games/types";
@@ -396,12 +397,13 @@ export function SearchClient({
           />
         </>
       ) : (
-        <div className="rounded-lg border bg-panel p-8 text-center">
-          <h2 className="text-xl font-bold">No results found.</h2>
-          <p className="mt-2 text-zinc-400">
-            Try clearing the year first, choosing a broader category, or
-            searching a title inside that category.
-          </p>
+        <div className="rounded-lg border bg-panel p-6">
+          <EmptyState
+            icon={SearchX}
+            title="No results found."
+            description="Try clearing the year first, choosing a broader category, or searching a title inside that category."
+            className="border-0 bg-transparent p-0"
+          />
           {hasActiveFilters ? (
             <Button
               type="button"

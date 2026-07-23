@@ -12,6 +12,12 @@ function loginErrorRedirect(request: NextRequest, reason: string) {
   return NextResponse.redirect(url);
 }
 
+function copyCookies(source: NextResponse, target: NextResponse) {
+  for (const cookie of source.cookies.getAll()) {
+    target.cookies.set(cookie);
+  }
+}
+
 export async function GET(request: NextRequest) {
   if (!isSupabaseConfigured()) {
     return loginErrorRedirect(request, "supabase");
@@ -32,5 +38,7 @@ export async function GET(request: NextRequest) {
     return fallbackResponse;
   }
 
-  return NextResponse.redirect(data.url);
+  const redirectResponse = NextResponse.redirect(data.url);
+  copyCookies(fallbackResponse, redirectResponse);
+  return redirectResponse;
 }

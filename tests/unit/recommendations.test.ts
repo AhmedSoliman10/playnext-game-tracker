@@ -57,6 +57,8 @@ describe("recommendation scoring", () => {
 
     expect(result.score).toBeGreaterThan(8);
     expect(result.reasons.join(" ")).toMatch(/Adventure|Open World/i);
+    expect(result.reasons.join(" ")).toMatch(/external rating/i);
+    expect(result.reasons.join(" ")).toMatch(/release era/i);
   });
 
   it("does not recommend games already answered or marked not interested", () => {

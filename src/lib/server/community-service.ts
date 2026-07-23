@@ -3,10 +3,13 @@ import type { GameSummary } from "@/lib/games/types";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
 import type { Database, Json } from "@/lib/supabase/database.types";
+import { GAME_STATUSES } from "@/lib/types";
 import type {
   LibraryEntry,
+  PublicActivityItem,
   PublicProfile,
   Rating,
+  GameStatus,
   UserContext,
   UserGame,
 } from "@/lib/types";
@@ -20,6 +23,7 @@ type PublicProfileRow = Pick<
 type GameRow = Database["public"]["Tables"]["games"]["Row"];
 type UserGameRow = Database["public"]["Tables"]["user_games"]["Row"];
 type RatingRow = Database["public"]["Tables"]["ratings"]["Row"];
+type ActivityRow = Database["public"]["Tables"]["activity_log"]["Row"];
 
 export interface PublicProfileDetails {
   profile: PublicProfile;
@@ -108,6 +112,53 @@ function mapPublicProfile(
     isFollowing: viewerFollows.has(profile.id),
     isCurrentUser: profile.id === user.userId,
     isPrivate: profile.is_private,
+  };
+}
+
+function metadataObject(value: Json): Record<string, Json | undefined> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return {};
+  }
+
+  return value;
+}
+
+function metadataNumber(value: Json | undefined) {
+  return typeof value === "number" ? value : null;
+}
+
+function metadataBoolean(value: Json | undefined) {
+  return typeof value === "boolean" ? value : null;
+}
+
+function isGameStatus(value: string): value is GameStatus {
+  return GAME_STATUSES.includes(value as GameStatus);
+}
+
+function metadataStatus(value: Json | undefined): GameStatus | null {
+  return typeof value === "string" && isGameStatus(value) ? value : null;
+}
+
+function mapPublicActivity(
+  row: ActivityRow,
+  profile: PublicProfileRow,
+  game: GameRow,
+): PublicActivityItem {
+  const metadata = metadataObject(row.metadata);
+
+  return {
+    id: row.id,
+    playerId: row.user_id,
+    playerName: profile.display_name ?? "Player",
+    playerAvatarUrl: profile.avatar_url,
+    gameSlug: game.slug,
+    gameTitle: game.title,
+    gameCoverImageUrl: game.cover_image_url,
+    activityType: row.activity_type,
+    status: metadataStatus(metadata.status),
+    overallRating: metadataNumber(metadata.overallRating),
+    isFavorite: metadataBoolean(metadata.isFavorite),
+    createdAt: row.created_at,
   };
 }
 
@@ -207,6 +258,94 @@ export async function getCommunityProfiles(
         viewerFollows,
       ),
     );
+}
+
+export async function getCommunityActivityFeed(
+  user: UserContext,
+  limit = 20,
+): Promise<PublicActivityItem[]> {
+  if (user.isDemo || !isSupabaseConfigured()) {
+    return [];
+  }
+
+  const admin = createSupabaseAdminClient();
+  if (!admin) {
+    return [];
+  }
+
+  let profiles: PublicProfileRow[] = [];
+  const { data: profilesWithPrivacy, error: profilesError } = await admin
+    .from("profiles")
+    .select("id, display_name, avatar_url, created_at, is_private");
+
+  if (profilesError) {
+    if (profilesError.code !== "42703") {
+      throw new Error("Could not load public activity profiles.");
+    }
+
+    const { data: fallbackProfiles, error: fallbackError } = await admin
+      .from("profiles")
+      .select("id, display_name, avatar_url, created_at");
+
+    if (fallbackError) {
+      throw new Error("Could not load public activity profiles.");
+    }
+
+    profiles = (fallbackProfiles ?? []).map((profile) => ({
+      ...profile,
+      is_private: false,
+    }));
+  } else {
+    profiles = profilesWithPrivacy ?? [];
+  }
+
+  const visibleProfiles = profiles.filter(
+    (profile) => !profile.is_private || profile.id === user.userId,
+  );
+  const profileIds = visibleProfiles.map((profile) => profile.id);
+  if (!profileIds.length) {
+    return [];
+  }
+
+  const { data: activities, error: activityError } = await admin
+    .from("activity_log")
+    .select("*")
+    .in("user_id", profileIds)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  if (activityError) {
+    throw new Error("Could not load public activity.");
+  }
+
+  const rows = activities ?? [];
+  const gameIds = [...new Set(rows.map((row) => row.game_id))];
+  if (!gameIds.length) {
+    return [];
+  }
+
+  const { data: games, error: gamesError } = await admin
+    .from("games")
+    .select("*")
+    .in("id", gameIds);
+
+  if (gamesError) {
+    throw new Error("Could not load activity games.");
+  }
+
+  const profilesById = new Map(
+    visibleProfiles.map((profile) => [profile.id, profile]),
+  );
+  const gamesById = new Map((games ?? []).map((game) => [game.id, game]));
+
+  return rows
+    .map((row) => {
+      const profile = profilesById.get(row.user_id);
+      const game = gamesById.get(row.game_id);
+
+      return profile && game ? mapPublicActivity(row, profile, game) : null;
+    })
+    .filter((item): item is PublicActivityItem => Boolean(item));
 }
 
 export async function getPublicProfileDetails(

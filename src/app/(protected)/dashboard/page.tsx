@@ -1,9 +1,11 @@
 import Link from "next/link";
+import { Sparkles } from "lucide-react";
 import { GameCard } from "@/components/games/game-card";
 import { GameArtwork } from "@/components/games/game-artwork";
 import { BarList } from "@/components/charts/bar-list";
 import { StatCard } from "@/components/profile/stat-card";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import { getGameProvider } from "@/lib/games/provider";
 import { getRecommendations } from "@/lib/recommendations/scoring";
 import { getCurrentUser } from "@/lib/server/current-user";
@@ -78,7 +80,15 @@ export default async function DashboardPage() {
               ))}
             </div>
           ) : (
-            <EmptyPanel text="Rate a few games and recommendations will sharpen up." />
+            <EmptyState
+              icon={Sparkles}
+              title="Recommendations need a little taste data."
+              description="Rate a few played games or mark titles as want-to-play so PlayNext can rank your next picks with better context."
+              actionHref="/discover"
+              actionLabel="Start discovery"
+              secondaryHref="/search"
+              secondaryLabel="Search catalog"
+            />
           )}
         </section>
 
@@ -117,28 +127,20 @@ export default async function DashboardPage() {
         <DashboardList
           title="Currently playing"
           entries={currentlyPlaying}
-          empty="Nothing active right now."
+          empty="Mark a game as currently playing and it will appear here."
         />
         <DashboardList
           title="Recently rated"
           entries={recentlyRated}
-          empty="No ratings saved yet."
+          empty="Rate a played game to build your history."
         />
         <DashboardList
           title="Want-to-play backlog"
           entries={backlog}
-          empty="Your backlog is clear."
+          empty="Add a game to want-to-play when something catches your eye."
         />
       </div>
     </section>
-  );
-}
-
-function EmptyPanel({ text }: { text: string }) {
-  return (
-    <div className="rounded-lg border bg-panel p-6 text-center text-zinc-400">
-      {text}
-    </div>
   );
 }
 

@@ -1,30 +1,48 @@
 create extension if not exists pgcrypto;
 
-create type public.game_status as enum (
-  'played',
-  'playing',
-  'want_to_play',
-  'dropped',
-  'not_interested',
-  'skipped'
-);
+do $$
+begin
+  create type public.game_status as enum (
+    'played',
+    'playing',
+    'want_to_play',
+    'dropped',
+    'not_interested',
+    'skipped'
+  );
+exception
+  when duplicate_object then null;
+end
+$$;
 
-create type public.discovery_action as enum (
-  'played',
-  'playing',
-  'want_to_play',
-  'dropped',
-  'not_interested',
-  'skipped',
-  'favorite',
-  'unfavorite'
-);
+do $$
+begin
+  create type public.discovery_action as enum (
+    'played',
+    'playing',
+    'want_to_play',
+    'dropped',
+    'not_interested',
+    'skipped',
+    'favorite',
+    'unfavorite'
+  );
+exception
+  when duplicate_object then null;
+end
+$$;
 
-create type public.activity_type as enum (
-  'status_changed',
-  'rating_saved',
-  'favorite_changed'
-);
+do $$
+begin
+  create type public.activity_type as enum (
+    'status_changed',
+    'rating_saved',
+    'favorite_changed'
+  );
+exception
+  when duplicate_object then null;
+end
+$$;
 
 create or replace function public.set_updated_at()
 returns trigger
@@ -36,7 +54,7 @@ begin
 end;
 $$;
 
-create table public.profiles (
+create table if not exists public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   display_name text,
   avatar_url text,
@@ -44,7 +62,7 @@ create table public.profiles (
   updated_at timestamptz not null default now()
 );
 
-create table public.games (
+create table if not exists public.games (
   id uuid primary key default gen_random_uuid(),
   provider text not null,
   provider_game_id text not null,
@@ -64,31 +82,31 @@ create table public.games (
   unique (provider, provider_game_id)
 );
 
-create table public.genres (
+create table if not exists public.genres (
   id uuid primary key default gen_random_uuid(),
   name text not null,
   slug text not null unique
 );
 
-create table public.platforms (
+create table if not exists public.platforms (
   id uuid primary key default gen_random_uuid(),
   name text not null,
   slug text not null unique
 );
 
-create table public.game_genres (
+create table if not exists public.game_genres (
   game_id uuid not null references public.games(id) on delete cascade,
   genre_id uuid not null references public.genres(id) on delete cascade,
   primary key (game_id, genre_id)
 );
 
-create table public.game_platforms (
+create table if not exists public.game_platforms (
   game_id uuid not null references public.games(id) on delete cascade,
   platform_id uuid not null references public.platforms(id) on delete cascade,
   primary key (game_id, platform_id)
 );
 
-create table public.user_games (
+create table if not exists public.user_games (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
   game_id uuid not null references public.games(id) on delete cascade,
@@ -102,7 +120,7 @@ create table public.user_games (
   unique (user_id, game_id)
 );
 
-create table public.ratings (
+create table if not exists public.ratings (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
   game_id uuid not null references public.games(id) on delete cascade,
@@ -121,7 +139,7 @@ create table public.ratings (
   unique (user_id, game_id)
 );
 
-create table public.discovery_interactions (
+create table if not exists public.discovery_interactions (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
   game_id uuid not null references public.games(id) on delete cascade,
@@ -129,7 +147,7 @@ create table public.discovery_interactions (
   created_at timestamptz not null default now()
 );
 
-create table public.activity_log (
+create table if not exists public.activity_log (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
   game_id uuid not null references public.games(id) on delete cascade,
@@ -138,18 +156,22 @@ create table public.activity_log (
   created_at timestamptz not null default now()
 );
 
+drop trigger if exists profiles_set_updated_at on public.profiles;
 create trigger profiles_set_updated_at
 before update on public.profiles
 for each row execute function public.set_updated_at();
 
+drop trigger if exists games_set_updated_at on public.games;
 create trigger games_set_updated_at
 before update on public.games
 for each row execute function public.set_updated_at();
 
+drop trigger if exists user_games_set_updated_at on public.user_games;
 create trigger user_games_set_updated_at
 before update on public.user_games
 for each row execute function public.set_updated_at();
 
+drop trigger if exists ratings_set_updated_at on public.ratings;
 create trigger ratings_set_updated_at
 before update on public.ratings
 for each row execute function public.set_updated_at();
@@ -168,6 +190,7 @@ begin
 end;
 $$;
 
+drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
 after insert on auth.users
 for each row execute function public.handle_new_user();
@@ -183,125 +206,147 @@ alter table public.ratings enable row level security;
 alter table public.discovery_interactions enable row level security;
 alter table public.activity_log enable row level security;
 
+drop policy if exists "profiles_select_own" on public.profiles;
 create policy "profiles_select_own"
 on public.profiles for select
 to authenticated
 using (auth.uid() = id);
 
+drop policy if exists "profiles_insert_own" on public.profiles;
 create policy "profiles_insert_own"
 on public.profiles for insert
 to authenticated
 with check (auth.uid() = id);
 
+drop policy if exists "profiles_update_own" on public.profiles;
 create policy "profiles_update_own"
 on public.profiles for update
 to authenticated
 using (auth.uid() = id)
 with check (auth.uid() = id);
 
+drop policy if exists "games_select_authenticated" on public.games;
 create policy "games_select_authenticated"
 on public.games for select
 to authenticated
 using (true);
 
+drop policy if exists "genres_select_authenticated" on public.genres;
 create policy "genres_select_authenticated"
 on public.genres for select
 to authenticated
 using (true);
 
+drop policy if exists "platforms_select_authenticated" on public.platforms;
 create policy "platforms_select_authenticated"
 on public.platforms for select
 to authenticated
 using (true);
 
+drop policy if exists "game_genres_select_authenticated" on public.game_genres;
 create policy "game_genres_select_authenticated"
 on public.game_genres for select
 to authenticated
 using (true);
 
+drop policy if exists "game_platforms_select_authenticated" on public.game_platforms;
 create policy "game_platforms_select_authenticated"
 on public.game_platforms for select
 to authenticated
 using (true);
 
+drop policy if exists "user_games_select_own" on public.user_games;
 create policy "user_games_select_own"
 on public.user_games for select
 to authenticated
 using (auth.uid() = user_id);
 
+drop policy if exists "user_games_insert_own" on public.user_games;
 create policy "user_games_insert_own"
 on public.user_games for insert
 to authenticated
 with check (auth.uid() = user_id);
 
+drop policy if exists "user_games_update_own" on public.user_games;
 create policy "user_games_update_own"
 on public.user_games for update
 to authenticated
 using (auth.uid() = user_id)
 with check (auth.uid() = user_id);
 
+drop policy if exists "user_games_delete_own" on public.user_games;
 create policy "user_games_delete_own"
 on public.user_games for delete
 to authenticated
 using (auth.uid() = user_id);
 
+drop policy if exists "ratings_select_own" on public.ratings;
 create policy "ratings_select_own"
 on public.ratings for select
 to authenticated
 using (auth.uid() = user_id);
 
+drop policy if exists "ratings_insert_own" on public.ratings;
 create policy "ratings_insert_own"
 on public.ratings for insert
 to authenticated
 with check (auth.uid() = user_id);
 
+drop policy if exists "ratings_update_own" on public.ratings;
 create policy "ratings_update_own"
 on public.ratings for update
 to authenticated
 using (auth.uid() = user_id)
 with check (auth.uid() = user_id);
 
+drop policy if exists "ratings_delete_own" on public.ratings;
 create policy "ratings_delete_own"
 on public.ratings for delete
 to authenticated
 using (auth.uid() = user_id);
 
+drop policy if exists "discovery_interactions_select_own" on public.discovery_interactions;
 create policy "discovery_interactions_select_own"
 on public.discovery_interactions for select
 to authenticated
 using (auth.uid() = user_id);
 
+drop policy if exists "discovery_interactions_insert_own" on public.discovery_interactions;
 create policy "discovery_interactions_insert_own"
 on public.discovery_interactions for insert
 to authenticated
 with check (auth.uid() = user_id);
 
+drop policy if exists "discovery_interactions_delete_own" on public.discovery_interactions;
 create policy "discovery_interactions_delete_own"
 on public.discovery_interactions for delete
 to authenticated
 using (auth.uid() = user_id);
 
+drop policy if exists "activity_log_select_own" on public.activity_log;
 create policy "activity_log_select_own"
 on public.activity_log for select
 to authenticated
 using (auth.uid() = user_id);
 
+drop policy if exists "activity_log_insert_own" on public.activity_log;
 create policy "activity_log_insert_own"
 on public.activity_log for insert
 to authenticated
 with check (auth.uid() = user_id);
 
+drop policy if exists "activity_log_delete_own" on public.activity_log;
 create policy "activity_log_delete_own"
 on public.activity_log for delete
 to authenticated
 using (auth.uid() = user_id);
 
-create index games_slug_idx on public.games (slug);
-create index games_provider_idx on public.games (provider, provider_game_id);
-create index games_release_date_idx on public.games (release_date desc);
-create index games_external_rating_idx on public.games (external_rating desc);
-create index user_games_user_status_idx on public.user_games (user_id, status);
-create index user_games_user_favorite_idx on public.user_games (user_id, is_favorite);
-create index ratings_user_rating_idx on public.ratings (user_id, overall_rating desc);
-create index discovery_user_created_idx on public.discovery_interactions (user_id, created_at desc);
-create index activity_user_created_idx on public.activity_log (user_id, created_at desc);
+create index if not exists games_slug_idx on public.games (slug);
+create index if not exists games_provider_idx on public.games (provider, provider_game_id);
+create index if not exists games_release_date_idx on public.games (release_date desc);
+create index if not exists games_external_rating_idx on public.games (external_rating desc);
+create index if not exists user_games_user_status_idx on public.user_games (user_id, status);
+create index if not exists user_games_user_favorite_idx on public.user_games (user_id, is_favorite);
+create index if not exists ratings_user_rating_idx on public.ratings (user_id, overall_rating desc);
+create index if not exists discovery_user_created_idx on public.discovery_interactions (user_id, created_at desc);
+create index if not exists activity_user_created_idx on public.activity_log (user_id, created_at desc);

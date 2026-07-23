@@ -14,14 +14,18 @@ import { Badge } from "@/components/ui/badge";
 export default function Home() {
   return (
     <main className="min-h-screen bg-background">
-      <section
-        className="relative flex min-h-[78vh] items-center overflow-hidden border-b bg-cover bg-center"
-        style={{
-          backgroundImage:
-            "linear-gradient(90deg,rgba(9,9,11,0.94),rgba(9,9,11,0.68),rgba(9,9,11,0.22)),url('https://cdn.akamai.steamstatic.com/steam/apps/1174180/library_hero.jpg')",
-        }}
-      >
-        <div className="mx-auto grid w-full max-w-7xl gap-10 px-4 py-16 sm:px-6 lg:grid-cols-[1.05fr_0.95fr] lg:px-8">
+      <section className="relative flex min-h-[78vh] items-center overflow-hidden border-b bg-zinc-950">
+        <Image
+          src="/social-preview.svg"
+          alt=""
+          fill
+          priority
+          sizes="100vw"
+          aria-hidden
+          className="object-cover opacity-35"
+        />
+        <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(9,9,11,0.96),rgba(9,9,11,0.78),rgba(9,9,11,0.42))]" />
+        <div className="relative mx-auto grid w-full max-w-7xl gap-10 px-4 py-16 sm:px-6 lg:grid-cols-[1.05fr_0.95fr] lg:px-8">
           <div className="flex max-w-2xl flex-col justify-center gap-7">
             <Badge className="w-fit border-cyan-300/40 bg-cyan-300/10 text-cyan-100">
               Conversational game tracking
@@ -54,11 +58,12 @@ export default function Home() {
           <div className="hidden items-end justify-center lg:flex">
             <div className="w-full max-w-sm rounded-lg border bg-zinc-950/88 p-4 shadow-xl">
               <Image
-                src="https://cdn.akamai.steamstatic.com/steam/apps/1174180/library_600x900_2x.jpg"
+                src="/landing-card-cover.svg"
                 alt="Example PlayNext game card cover"
                 width={600}
                 height={900}
                 priority
+                sizes="384px"
                 className="aspect-[3/4] rounded-md object-cover"
               />
               <div className="space-y-3 pt-4">

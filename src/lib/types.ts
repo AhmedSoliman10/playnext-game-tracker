@@ -96,6 +96,21 @@ export interface PublicProfile {
   isPrivate?: boolean;
 }
 
+export interface PublicActivityItem {
+  id: string;
+  playerId: string;
+  playerName: string;
+  playerAvatarUrl?: string | null;
+  gameSlug: string;
+  gameTitle: string;
+  gameCoverImageUrl?: string | null;
+  activityType: "status_changed" | "rating_saved" | "favorite_changed";
+  status?: GameStatus | null;
+  overallRating?: number | null;
+  isFavorite?: boolean | null;
+  createdAt: string;
+}
+
 export interface ActivityItem {
   id: string;
   gameId: string;

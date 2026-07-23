@@ -72,7 +72,7 @@ export function AuthForm({ mode, demoMode }: AuthFormProps) {
     mode !== "forgot-password" && oauthError === "supabase"
       ? "Supabase authentication is not configured for this deployment."
       : mode !== "forgot-password" && oauthError === "discord"
-        ? "Discord sign-in is not enabled in Supabase yet. Add the Discord Client ID and Secret in Supabase, then try again."
+        ? "Discord sign-in could not be completed. Check that Discord's redirect URL is the Supabase OAuth callback URL, then try again."
         : mode !== "forgot-password" && oauthError === "missing-code"
           ? "Discord did not return a valid sign-in code. Please try again."
           : null,

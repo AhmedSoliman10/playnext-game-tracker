@@ -53,4 +53,40 @@ describe("IGDB normalization", () => {
   it("adds spelling-tolerant search fallbacks for common title mistakes", () => {
     expect(getIgdbSearchQueries("dinner dash")).toContain("diner dash");
   });
+
+  it("handles missing optional artwork and creates a stable fallback slug", () => {
+    const parsed = igdbGameSchema.parse({
+      id: 77,
+      name: "Edge Case Game",
+      summary: null,
+      storyline: "A short original storyline.",
+      first_release_date: null,
+      involved_companies: [
+        { developer: true },
+        { publisher: true, company: { name: "Known Publisher" } },
+      ],
+      rating: 72.2,
+    });
+
+    const game = normalizeIgdbGame(parsed);
+
+    expect(game.slug).toBe("edge-case-game-77");
+    expect(game.description).toBe("A short original storyline.");
+    expect(game.coverImageUrl).toBeNull();
+    expect(game.backgroundImageUrl).toBeNull();
+    expect(game.screenshots).toEqual([]);
+    expect(game.releaseDate).toBeNull();
+    expect(game.developer).toBeNull();
+    expect(game.publisher).toBe("Known Publisher");
+    expect(game.externalRating).toBe(7.2);
+  });
+
+  it("rejects malformed IGDB rows before they reach the application", () => {
+    expect(() =>
+      igdbGameSchema.parse({
+        id: "not-a-number",
+        name: "Broken Game",
+      }),
+    ).toThrow();
+  });
 });
