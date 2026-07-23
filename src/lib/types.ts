@@ -93,6 +93,7 @@ export interface PublicProfile {
   followingCount: number;
   isFollowing: boolean;
   isCurrentUser: boolean;
+  isPrivate?: boolean;
 }
 
 export interface ActivityItem {

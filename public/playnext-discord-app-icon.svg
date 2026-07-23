@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="bg" x1="142" x2="882" y1="92" y2="932">
+      <stop offset="0" stop-color="#0f1720" />
+      <stop offset="0.55" stop-color="#18212b" />
+      <stop offset="1" stop-color="#071014" />
+    </linearGradient>
+    <linearGradient id="pad" x1="210" x2="814" y1="298" y2="722">
+      <stop offset="0" stop-color="#67e8f9" />
+      <stop offset="1" stop-color="#34d399" />
+    </linearGradient>
+  </defs>
+  <rect width="1024" height="1024" rx="224" fill="url(#bg)" />
+  <circle cx="512" cy="512" r="388" fill="#67e8f9" opacity="0.08" />
+  <path
+    d="M240 392c0-82 66-148 148-148h248c82 0 148 66 148 148v132c0 82-66 148-148 148H388c-82 0-148-66-148-148V392Z"
+    fill="url(#pad)"
+  />
+  <path
+    d="M382 392v-72h82v72h72v82h-72v72h-82v-72h-72v-82h72Z"
+    fill="#101820"
+  />
+  <circle cx="644" cy="406" r="48" fill="#101820" />
+  <circle cx="724" cy="500" r="48" fill="#101820" />
+  <path d="M392 712h240l-58 88H450l-58-88Z" fill="#e5faff" opacity="0.92" />
+  <path
+    d="M388 672h248c82 0 148-66 148-148v18c0 82-66 148-148 148H388c-82 0-148-66-148-148v-18c0 82 66 148 148 148Z"
+    fill="#0f1720"
+    opacity="0.16"
+  />
+</svg>

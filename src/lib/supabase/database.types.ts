@@ -16,6 +16,7 @@ export interface Database {
           display_name_normalized: string | null;
           display_name_changed_at: string;
           avatar_url: string | null;
+          is_private: boolean;
           created_at: string;
           updated_at: string;
         };
@@ -25,6 +26,7 @@ export interface Database {
           display_name_normalized?: string | null;
           display_name_changed_at?: string;
           avatar_url?: string | null;
+          is_private?: boolean;
           created_at?: string;
           updated_at?: string;
         };
@@ -33,6 +35,7 @@ export interface Database {
           display_name_normalized?: string | null;
           display_name_changed_at?: string;
           avatar_url?: string | null;
+          is_private?: boolean;
           updated_at?: string;
         };
         Relationships: [];

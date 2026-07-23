@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Loader2, MessageCircle } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
@@ -65,7 +65,7 @@ export function AuthForm({ mode, demoMode }: AuthFormProps) {
       : mode === "sign-in" && verifiedState === "maybe"
         ? "That confirmation link was already used or expired. Try signing in now; if Supabase says the email is not verified, request a fresh confirmation email."
         : mode === "sign-in" && searchParams.get("created") === "1"
-          ? "Account created. Check your email to verify it, then sign in."
+          ? "Account created. Check your email to verify it, then sign in. If you do not see it, check your junk or spam folder."
           : null,
   );
   const [serverError, setServerError] = useState<string | null>(
@@ -73,7 +73,9 @@ export function AuthForm({ mode, demoMode }: AuthFormProps) {
       ? "Supabase authentication is not configured for this deployment."
       : mode !== "forgot-password" && oauthError === "discord"
         ? "Discord sign-in is not enabled in Supabase yet. Add the Discord Client ID and Secret in Supabase, then try again."
-        : null,
+        : mode !== "forgot-password" && oauthError === "missing-code"
+          ? "Discord did not return a valid sign-in code. Please try again."
+          : null,
   );
   const {
     register,
@@ -113,7 +115,8 @@ export function AuthForm({ mode, demoMode }: AuthFormProps) {
 
     if (mode === "forgot-password") {
       setServerMessage(
-        payload.message ?? "If that email exists, a reset link is on the way.",
+        payload.message ??
+          "If that email exists, a reset link is on the way. Check your junk or spam folder if it is not in your inbox.",
       );
       return;
     }
@@ -247,13 +250,13 @@ export function AuthForm({ mode, demoMode }: AuthFormProps) {
               disabled
               title="Discord sign-in needs Supabase authentication to be configured."
             >
-              <MessageCircle className="h-4 w-4" aria-hidden />
+              <DiscordLogo />
               Continue with Discord
             </Button>
           ) : (
             <Button asChild variant="secondary" className="w-full">
               <Link href={discordHref}>
-                <MessageCircle className="h-4 w-4" aria-hidden />
+                <DiscordLogo />
                 Continue with Discord
               </Link>
             </Button>
@@ -272,5 +275,21 @@ export function AuthForm({ mode, demoMode }: AuthFormProps) {
         ) : null}
       </div>
     </form>
+  );
+}
+
+function DiscordLogo() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      className="h-4 w-4 shrink-0"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <path
+        fill="currentColor"
+        d="M18.9 5.2A15.3 15.3 0 0 0 15.1 4l-.2.4c1.4.4 2 .9 2.7 1.4a12.9 12.9 0 0 0-11.2 0A8.7 8.7 0 0 1 9.1 4L8.9 4a15.3 15.3 0 0 0-3.8 1.2C2.7 8.8 2 12.3 2.3 15.8A15.5 15.5 0 0 0 7 18.2c.4-.5.7-1 1-1.6-.6-.2-1.1-.5-1.6-.8l.4-.3a10.7 10.7 0 0 0 10.4 0l.4.3c-.5.3-1 .6-1.6.8.3.6.6 1.1 1 1.6a15.5 15.5 0 0 0 4.7-2.4c.4-4.1-.7-7.5-2.8-10.6ZM8.7 14.2c-.9 0-1.6-.8-1.6-1.8s.7-1.8 1.6-1.8 1.6.8 1.6 1.8-.7 1.8-1.6 1.8Zm6.6 0c-.9 0-1.6-.8-1.6-1.8s.7-1.8 1.6-1.8 1.6.8 1.6 1.8-.7 1.8-1.6 1.8Z"
+      />
+    </svg>
   );
 }

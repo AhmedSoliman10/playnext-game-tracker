@@ -48,6 +48,13 @@ export function getAuthConfirmUrl(request: Request, next = "/dashboard") {
   return callbackUrl.toString();
 }
 
+export function getAuthConfirmFlowUrl(
+  request: Request,
+  flow: "signup" | "reset",
+) {
+  return new URL(`/auth/confirm/${flow}`, getAppOrigin(request)).toString();
+}
+
 export function getSafeNextPath(value: string | null, fallback = "/dashboard") {
   if (!value || !value.startsWith("/")) {
     return fallback;

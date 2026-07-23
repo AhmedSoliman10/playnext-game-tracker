@@ -7,6 +7,8 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
+type AuthConfirmFlow = "signup" | "reset" | "generic";
+
 function safeNext(value: string | null) {
   if (!value || !value.startsWith("/") || value.startsWith("//")) {
     return "/dashboard";
@@ -15,7 +17,23 @@ function safeNext(value: string | null) {
   return value;
 }
 
-export function AuthConfirmClient() {
+function nextForFlow(flow: AuthConfirmFlow, queryNext: string | null) {
+  if (flow === "signup") {
+    return "/login?verified=1";
+  }
+
+  if (flow === "reset") {
+    return "/reset-password";
+  }
+
+  return safeNext(queryNext);
+}
+
+export function AuthConfirmClient({
+  flow = "generic",
+}: {
+  flow?: AuthConfirmFlow;
+}) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [error, setError] = useState<string | null>(null);
@@ -30,11 +48,12 @@ export function AuthConfirmClient() {
         return;
       }
 
-      const next = safeNext(searchParams.get("next"));
+      const next = nextForFlow(flow, searchParams.get("next"));
       const code = searchParams.get("code");
-      const signInFallback = next.startsWith("/login")
-        ? "/login?verified=maybe"
-        : null;
+      const signInFallback =
+        flow === "signup" || next.startsWith("/login")
+          ? "/login?verified=maybe"
+          : null;
 
       if (code) {
         const { error: exchangeError } =
@@ -80,7 +99,7 @@ export function AuthConfirmClient() {
     return () => {
       mounted = false;
     };
-  }, [router, searchParams]);
+  }, [flow, router, searchParams]);
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-background px-4">
@@ -92,7 +111,9 @@ export function AuthConfirmClient() {
               {error}
             </p>
             <Button asChild className="mt-5">
-              <Link href="/forgot-password">Request a new link</Link>
+              <Link href={flow === "signup" ? "/login" : "/forgot-password"}>
+                {flow === "signup" ? "Go to sign in" : "Request a new link"}
+              </Link>
             </Button>
           </>
         ) : (

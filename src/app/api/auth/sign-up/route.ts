@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
   APP_URL,
-  getAuthConfirmUrl,
+  getAuthConfirmFlowUrl,
   isSupabaseConfigured,
 } from "@/lib/auth/env";
 import {
@@ -22,6 +22,15 @@ function isEmailRateLimitError(error: { code?: string; message: string }) {
   return (
     error.code === "over_email_send_rate_limit" ||
     error.message.toLowerCase().includes("email rate limit")
+  );
+}
+
+function isDisplayNameTakenError(error: { message: string }) {
+  const message = error.message.toLowerCase();
+  return (
+    message.includes("profiles_display_name_normalized_unique") ||
+    message.includes("duplicate key") ||
+    message.includes("display_name_normalized")
   );
 }
 
@@ -70,9 +79,19 @@ export async function POST(request: NextRequest) {
         .eq("display_name_normalized", normalizedDisplayName)
         .maybeSingle();
 
-    if (!existingProfileError && existingProfile) {
+    if (existingProfileError) {
       return NextResponse.json(
-        { error: "That display name is taken. Choose another one." },
+        { error: "Could not check display name availability." },
+        { status: 400 },
+      );
+    }
+
+    if (existingProfile) {
+      return NextResponse.json(
+        {
+          error:
+            "That display name is already taken. Capital letters do not make it unique, so choose a different name.",
+        },
         { status: 409 },
       );
     }
@@ -82,7 +101,7 @@ export async function POST(request: NextRequest) {
       password: input.password,
       options: {
         data: { display_name: input.displayName },
-        emailRedirectTo: getAuthConfirmUrl(request, "/login?verified=1"),
+        emailRedirectTo: getAuthConfirmFlowUrl(request, "signup"),
       },
     });
 
@@ -94,6 +113,16 @@ export async function POST(request: NextRequest) {
               "Supabase email sending is temporarily rate-limited. Please wait a few minutes, or configure custom SMTP for production auth emails.",
           },
           { status: 429 },
+        );
+      }
+
+      if (isDisplayNameTakenError(error)) {
+        return NextResponse.json(
+          {
+            error:
+              "That display name is already taken. Capital letters do not make it unique, so choose a different name.",
+          },
+          { status: 409 },
         );
       }
 
@@ -110,6 +139,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         ok: true,
         redirectTo: "/login?created=1",
+        message:
+          "Account created. Check your email to verify it, and check your junk or spam folder if it is not in your inbox.",
       });
     }
 

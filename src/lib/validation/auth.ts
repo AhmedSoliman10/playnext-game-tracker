@@ -12,7 +12,15 @@ export const signInSchema = z.object({
 });
 
 export const signUpSchema = signInSchema.extend({
-  displayName: z.string().trim().min(2, "Use at least 2 characters.").max(80),
+  displayName: z
+    .string()
+    .trim()
+    .min(2, "Use at least 2 characters.")
+    .max(32, "Display names can be at most 32 characters.")
+    .regex(
+      /^[a-zA-Z0-9 _.-]+$/,
+      "Use letters, numbers, spaces, dots, dashes, or underscores.",
+    ),
 });
 
 export const forgotPasswordSchema = z.object({
@@ -40,6 +48,7 @@ export const profileSchema = z.object({
       "Use letters, numbers, spaces, dots, dashes, or underscores.",
     ),
   avatarUrl: z.string().trim().url().nullable().optional().or(z.literal("")),
+  isPrivate: z.boolean().optional().default(false),
 });
 
 export const deleteAccountSchema = z.object({

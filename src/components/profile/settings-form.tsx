@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { AlertTriangle, Loader2, Trash2, UserRound } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { useForm, useWatch } from "react-hook-form";
+import { useForm, useWatch, type Resolver } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,10 +13,12 @@ import { profileSchema, type ProfileInput } from "@/lib/validation/auth";
 export function SettingsForm({
   displayName,
   avatarUrl,
+  isPrivate,
   demoMode,
 }: {
   displayName: string;
   avatarUrl?: string | null;
+  isPrivate: boolean;
   demoMode: boolean;
 }) {
   const router = useRouter();
@@ -31,13 +33,16 @@ export function SettingsForm({
     handleSubmit,
     formState: { errors, isSubmitting },
   } = useForm<ProfileInput>({
-    resolver: zodResolver(profileSchema),
+    resolver: zodResolver(profileSchema) as unknown as Resolver<ProfileInput>,
     defaultValues: {
       displayName,
       avatarUrl: avatarUrl ?? "",
+      isPrivate,
     },
   });
   const watchedAvatarUrl = useWatch({ control, name: "avatarUrl" });
+  const watchedDisplayName = useWatch({ control, name: "displayName" });
+  const watchedIsPrivate = useWatch({ control, name: "isPrivate" });
 
   async function onSubmit(values: ProfileInput) {
     setMessage(null);
@@ -131,6 +136,23 @@ export function SettingsForm({
           ) : null}
         </div>
 
+        <label className="flex items-start gap-3 rounded-md border bg-zinc-950/30 p-3">
+          <input
+            type="checkbox"
+            className="mt-1 h-4 w-4 accent-cyan-300"
+            {...register("isPrivate")}
+          />
+          <span>
+            <span className="block text-sm font-semibold">
+              Make my profile private
+            </span>
+            <span className="mt-1 block text-sm text-zinc-400">
+              Private profiles are hidden from Community and cannot be viewed by
+              other players.
+            </span>
+          </span>
+        </label>
+
         {serverError ? (
           <p
             role="alert"
@@ -158,10 +180,19 @@ export function SettingsForm({
         <div className="rounded-lg border bg-panel p-5">
           <h2 className="text-lg font-bold">Profile preview</h2>
           <div className="mt-4 flex items-center gap-4">
-            <AvatarPreview src={watchedAvatarUrl} name={displayName} />
+            <AvatarPreview
+              src={watchedAvatarUrl}
+              name={watchedDisplayName || displayName}
+            />
             <div className="min-w-0">
-              <p className="truncate text-lg font-semibold">{displayName}</p>
-              <p className="text-sm text-zinc-400">Visible in Community</p>
+              <p className="truncate text-lg font-semibold">
+                {watchedDisplayName || displayName}
+              </p>
+              <p className="text-sm text-zinc-400">
+                {watchedIsPrivate
+                  ? "Hidden from Community"
+                  : "Visible in Community"}
+              </p>
             </div>
           </div>
         </div>

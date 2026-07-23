@@ -16,6 +16,10 @@ function normalizeDisplayName(value: string) {
   return value.trim().replace(/\s+/g, " ").toLowerCase();
 }
 
+function displayNameTakenMessage() {
+  return "That display name is already taken. Capital letters do not make it unique, so choose a different name.";
+}
+
 function formatCooldownDate(value: Date) {
   return new Intl.DateTimeFormat("en", {
     month: "short",
@@ -66,20 +70,34 @@ export async function PATCH(request: NextRequest) {
     const supabase = await createSupabaseServerClient();
     const { data: currentProfile, error: currentProfileError } = await supabase!
       .from("profiles")
-      .select("display_name_normalized, display_name_changed_at")
+      .select(
+        "display_name, display_name_normalized, display_name_changed_at, is_private",
+      )
       .eq("id", user.userId)
       .maybeSingle();
 
     if (currentProfileError) {
-      const { error } = await supabase!.from("profiles").upsert(
-        {
-          id: user.userId,
-          display_name: displayName,
-          avatar_url: avatarUrl,
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: "id" },
-      );
+      const { error } =
+        currentProfileError.code === "42703"
+          ? await supabase!.from("profiles").upsert(
+              {
+                id: user.userId,
+                display_name: displayName,
+                avatar_url: avatarUrl,
+                updated_at: new Date().toISOString(),
+              },
+              { onConflict: "id" },
+            )
+          : await supabase!.from("profiles").upsert(
+              {
+                id: user.userId,
+                display_name: displayName,
+                avatar_url: avatarUrl,
+                is_private: input.isPrivate,
+                updated_at: new Date().toISOString(),
+              },
+              { onConflict: "id" },
+            );
 
       if (error) {
         throw new Error("Could not update your profile.");
@@ -89,14 +107,27 @@ export async function PATCH(request: NextRequest) {
         profile: {
           displayName,
           avatarUrl,
+          isPrivate: input.isPrivate,
         },
         message:
-          "Profile updated. Apply the latest Supabase migration to enforce display-name uniqueness and the 5-day rename limit.",
+          currentProfileError.code === "42703"
+            ? "Profile updated. Apply the latest Supabase migration to enable private profiles."
+            : "Profile updated. Apply the latest Supabase migration to enforce display-name uniqueness and the 5-day rename limit.",
       });
     }
 
     const isDisplayNameChanging =
       currentProfile?.display_name_normalized !== normalizedDisplayName;
+    const isCaseOnlyDisplayNameChange =
+      !isDisplayNameChanging &&
+      Boolean(currentProfile?.display_name) &&
+      currentProfile?.display_name !== displayName;
+
+    if (isCaseOnlyDisplayNameChange) {
+      throw new Error(
+        "Capital letters do not make a new display name. Choose a different name instead of changing only the casing.",
+      );
+    }
 
     if (isDisplayNameChanging && currentProfile?.display_name_changed_at) {
       const changedAt = new Date(currentProfile.display_name_changed_at);
@@ -127,7 +158,7 @@ export async function PATCH(request: NextRequest) {
       }
 
       if (existingProfile) {
-        throw new Error("That display name is taken. Choose another one.");
+        throw new Error(displayNameTakenMessage());
       }
     }
 
@@ -141,6 +172,7 @@ export async function PATCH(request: NextRequest) {
           : (currentProfile?.display_name_changed_at ??
             new Date().toISOString()),
         avatar_url: avatarUrl,
+        is_private: input.isPrivate,
         updated_at: new Date().toISOString(),
       },
       { onConflict: "id" },
@@ -154,6 +186,7 @@ export async function PATCH(request: NextRequest) {
       profile: {
         displayName,
         avatarUrl,
+        isPrivate: input.isPrivate,
       },
     });
   } catch (error) {

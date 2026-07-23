@@ -88,11 +88,14 @@ Never expose `SUPABASE_SERVICE_ROLE_KEY` or `IGDB_CLIENT_SECRET` to browser code
 6. In Supabase Auth URL settings, set the Site URL to your deployed app URL and add redirect URLs:
    - `http://localhost:8000/auth/callback`
    - `http://localhost:8000/auth/confirm`
+   - `http://localhost:8000/auth/confirm/signup`
+   - `http://localhost:8000/auth/confirm/reset`
    - `https://your-domain.example/auth/callback`
    - `https://your-domain.example/auth/confirm`
-   - `https://your-domain.example/reset-password`
+   - `https://your-domain.example/auth/confirm/signup`
+   - `https://your-domain.example/auth/confirm/reset`
 
-Password reset emails are sent to `/auth/confirm?next=/reset-password`; the client confirmation page handles both PKCE `code` links and hash-token recovery links before opening `/reset-password`.
+Signup emails are sent to `/auth/confirm/signup`; password reset emails are sent to `/auth/confirm/reset`. The client confirmation page handles both PKCE `code` links and hash-token recovery links before opening the right next step.
 
 ## Custom SMTP For Auth Emails
 
@@ -129,9 +132,18 @@ The app includes a Discord sign-in button and `/api/auth/discord` OAuth starter 
 7. In Supabase Auth URL settings, keep these PlayNext redirect URLs:
    - `https://playnext-game-tracker.vercel.app/auth/callback`
    - `https://playnext-game-tracker.vercel.app/auth/confirm`
+   - `https://playnext-game-tracker.vercel.app/auth/confirm/signup`
+   - `https://playnext-game-tracker.vercel.app/auth/confirm/reset`
    - `http://localhost:8000/auth/callback`
    - `http://localhost:8000/auth/confirm`
+   - `http://localhost:8000/auth/confirm/signup`
+   - `http://localhost:8000/auth/confirm/reset`
 8. Redeploy or refresh the app, then use Continue with Discord on `/login` or `/signup`.
+
+The Discord Developer Portal app icon is available at:
+
+- `public/playnext-discord-app-icon.png`
+- `public/playnext-discord-app-icon.svg`
 
 ## Database Migration
 
@@ -140,6 +152,7 @@ Run the migration in `supabase/migrations/202607180001_playnext_initial_schema.s
 Newer migrations should be applied in timestamp order. The community/profile controls live in:
 
 - `supabase/migrations/202607230001_profiles_community_auth_controls.sql`
+- `supabase/migrations/202607230002_profile_privacy_and_display_name_strictness.sql`
 
 With Supabase CLI:
 

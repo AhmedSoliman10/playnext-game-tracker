@@ -1,6 +1,7 @@
 "use client";
 
 import { Loader2, UserPlus, UserRound, UserRoundCheck } from "lucide-react";
+import Link from "next/link";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import type { PublicProfile } from "@/lib/types";
@@ -108,6 +109,10 @@ export function CommunityClient({
                   </p>
                 </div>
               </div>
+
+              <Button asChild variant="outline" className="mt-4 w-full">
+                <Link href={`/players/${profile.id}`}>View profile</Link>
+              </Button>
 
               <Button
                 type="button"

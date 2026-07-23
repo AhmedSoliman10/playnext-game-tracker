@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAuthConfirmUrl, isSupabaseConfigured } from "@/lib/auth/env";
+import { getAuthConfirmFlowUrl, isSupabaseConfigured } from "@/lib/auth/env";
 import { clientRateLimitKey, errorResponse, readJson } from "@/lib/server/http";
 import { checkRateLimit } from "@/lib/server/rate-limit";
 import { createSupabaseRouteClient } from "@/lib/supabase/route";
@@ -36,13 +36,14 @@ export async function POST(request: NextRequest) {
     if (isSupabaseConfigured()) {
       const response = NextResponse.json({
         ok: true,
-        message: "If that email exists, a reset link is on the way.",
+        message:
+          "If that email exists, a reset link is on the way. Check your junk or spam folder if it is not in your inbox.",
       });
       const supabase = createSupabaseRouteClient(request, response);
       const { error } = await supabase!.auth.resetPasswordForEmail(
         input.email,
         {
-          redirectTo: getAuthConfirmUrl(request, "/reset-password"),
+          redirectTo: getAuthConfirmFlowUrl(request, "reset"),
         },
       );
 
