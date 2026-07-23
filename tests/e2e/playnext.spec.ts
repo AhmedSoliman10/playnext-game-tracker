@@ -7,17 +7,31 @@ test("popular carousel moves automatically on the landing page", async ({
 }) => {
   await page.goto("/");
   const rail = page.getByTestId("popular-carousel-rail").first();
+  const firstCard = page.locator("[data-carousel-card]").first();
   await expect(rail).toBeVisible();
+  await expect(firstCard).toBeVisible();
 
-  const initialScrollLeft = await rail.evaluate(
-    (element) => element.scrollLeft,
-  );
+  const initialBox = await firstCard.boundingBox();
+  expect(initialBox).not.toBeNull();
+  await expect
+    .poll(
+      async () => {
+        const box = await firstCard.boundingBox();
+        return box?.x ?? initialBox!.x;
+      },
+      {
+        message: "popular carousel card should visibly move without a click",
+        timeout: 5_000,
+      },
+    )
+    .toBeLessThan(initialBox!.x - 20);
+
   await expect
     .poll(() => rail.evaluate((element) => element.scrollLeft), {
-      message: "popular carousel should advance without a click",
+      message: "popular carousel rail should keep auto-scrolling",
       timeout: 5_000,
     })
-    .toBeGreaterThan(initialScrollLeft + 10);
+    .toBeGreaterThan(20);
 });
 
 test("critical game tracking journey works with keyboard-accessible discovery", async ({

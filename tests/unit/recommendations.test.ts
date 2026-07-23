@@ -79,4 +79,32 @@ describe("recommendation scoring", () => {
       recommendations.some((item) => item.game.slug === "elden-ring"),
     ).toBe(false);
   });
+
+  it("does not recommend the same library game when provider identifiers differ", () => {
+    const playedHades = entry("hades");
+    const igdbDuplicate = {
+      ...playedHades.game,
+      id: "999999",
+      provider: "igdb" as const,
+      providerGameId: "999999",
+      slug: "hades-igdb",
+      metadata: { igdbId: 999999 },
+    };
+    const zelda = seedGames.find(
+      (game) => game.slug === "the-legend-of-zelda-breath-of-the-wild",
+    )!;
+
+    const recommendations = getRecommendations(
+      [igdbDuplicate, zelda],
+      [playedHades],
+      10,
+    );
+
+    expect(
+      recommendations.some(
+        (recommendation) => recommendation.game.id === igdbDuplicate.id,
+      ),
+    ).toBe(false);
+    expect(recommendations.map((item) => item.game.slug)).toContain(zelda.slug);
+  });
 });

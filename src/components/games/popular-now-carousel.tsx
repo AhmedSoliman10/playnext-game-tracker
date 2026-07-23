@@ -9,7 +9,7 @@ import { GameArtwork } from "@/components/games/game-artwork";
 import type { GameSummary } from "@/lib/games/types";
 import { getReleaseYear } from "@/lib/utils";
 
-const AUTO_SCROLL_PX_PER_SECOND = 42;
+const AUTO_SCROLL_PX_PER_SECOND = 92;
 
 export function PopularNowCarousel({
   games,
@@ -210,12 +210,6 @@ export function PopularNowCarousel({
         ref={railRef}
         data-testid="popular-carousel-rail"
         className="scrollbar-hidden -mx-4 overflow-hidden scroll-smooth px-4 pb-2 [mask-image:linear-gradient(90deg,transparent,black_4%,black_96%,transparent)] sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8"
-        onPointerEnter={() => {
-          pausedRef.current = true;
-        }}
-        onPointerLeave={() => {
-          pausedRef.current = false;
-        }}
         onFocusCapture={() => {
           pausedRef.current = true;
         }}

@@ -2,7 +2,10 @@ import { NextResponse } from "next/server";
 import type { GameSummary } from "@/lib/games/types";
 import { getGameProvider } from "@/lib/games/provider";
 import {
+  getGameIdentityKeys,
+  getGameSlugIdentityKey,
   getRecommendations,
+  isGameInIdentitySet,
   type Recommendation,
 } from "@/lib/recommendations/scoring";
 import { getCurrentUser } from "@/lib/server/current-user";
@@ -37,16 +40,22 @@ export async function GET() {
       });
     }
 
-    const answeredSlugs = new Set([
-      ...entries.map((entry) => entry.game.slug),
-      ...discoverySlugs,
-    ]);
-    games = games.filter((game) => !answeredSlugs.has(game.slug));
+    const answeredGameKeys = new Set(
+      discoverySlugs.map((slug) => getGameSlugIdentityKey(slug)),
+    );
+    for (const entry of entries) {
+      for (const key of getGameIdentityKeys(entry.game)) {
+        answeredGameKeys.add(key);
+      }
+    }
+    games = games.filter(
+      (game) => !isGameInIdentitySet(game, answeredGameKeys),
+    );
 
     return NextResponse.json({
       recommendations: hasTasteSignal
         ? getRecommendations(games, entries, 8)
-        : getExploratoryRecommendations(games, answeredSlugs, 8),
+        : getExploratoryRecommendations(games, answeredGameKeys, 8),
     });
   } catch (error) {
     return errorResponse(error, "Could not load recommendations.");
@@ -55,11 +64,11 @@ export async function GET() {
 
 function getExploratoryRecommendations(
   games: GameSummary[],
-  answeredSlugs: Set<string>,
+  answeredGameKeys: Set<string>,
   limit: number,
 ): Recommendation[] {
   return shuffleGames(games)
-    .filter((game) => !answeredSlugs.has(game.slug))
+    .filter((game) => !isGameInIdentitySet(game, answeredGameKeys))
     .slice(0, limit)
     .map((game) => ({
       game,

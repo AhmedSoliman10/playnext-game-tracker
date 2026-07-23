@@ -8,7 +8,10 @@ import { StatCard } from "@/components/profile/stat-card";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { getGameProvider } from "@/lib/games/provider";
-import { getRecommendations } from "@/lib/recommendations/scoring";
+import {
+  getGameIdentityKeys,
+  getRecommendations,
+} from "@/lib/recommendations/scoring";
 import { getCurrentUser } from "@/lib/server/current-user";
 import { getLibraryEntries } from "@/lib/server/library-service";
 import { calculateUserStats } from "@/lib/stats/stats";
@@ -23,6 +26,12 @@ export default async function DashboardPage() {
   const stats = calculateUserStats(entries);
   const games = await getGameProvider().getPopularGames({ pageSize: 30 });
   const recommendations = getRecommendations(games, entries, 4);
+  const entriesByGameKey = new Map<string, (typeof entries)[number]>();
+  for (const entry of entries) {
+    for (const key of getGameIdentityKeys(entry.game)) {
+      entriesByGameKey.set(key, entry);
+    }
+  }
   const currentlyPlaying = entries
     .filter((entry) => entry.userGame.status === "playing")
     .slice(0, 3);
@@ -79,7 +88,14 @@ export default async function DashboardPage() {
             <div className="grid gap-4 lg:grid-cols-2">
               {recommendations.map((recommendation, index) => (
                 <div key={recommendation.game.slug} className="space-y-2">
-                  <GameCard game={recommendation.game} priority={index < 2} />
+                  <GameCard
+                    game={recommendation.game}
+                    entry={getLibraryEntryForGame(
+                      recommendation.game,
+                      entriesByGameKey,
+                    )}
+                    priority={index < 2}
+                  />
                   <p className="rounded-md border bg-zinc-950 px-3 py-2 text-sm text-zinc-300">
                     {recommendation.reasons[0]}
                   </p>
@@ -149,6 +165,18 @@ export default async function DashboardPage() {
       </div>
     </section>
   );
+}
+
+function getLibraryEntryForGame(
+  game: Parameters<typeof getGameIdentityKeys>[0],
+  entriesByGameKey: Map<
+    string,
+    Awaited<ReturnType<typeof getLibraryEntries>>[number]
+  >,
+) {
+  return getGameIdentityKeys(game)
+    .map((key) => entriesByGameKey.get(key))
+    .find((entry) => entry);
 }
 
 function DashboardList({

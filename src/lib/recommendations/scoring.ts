@@ -15,11 +15,71 @@ export interface RecommendationProfile {
   favoriteGameIds: Set<string>;
   excludedGameIds: Set<string>;
   answeredGameIds: Set<string>;
+  excludedGameKeys: Set<string>;
+  answeredGameKeys: Set<string>;
   highRatedGames: GameSummary[];
 }
 
 function addWeight(map: Map<string, number>, key: string, amount: number) {
   map.set(key, (map.get(key) ?? 0) + amount);
+}
+
+export function getGameSlugIdentityKey(slug: string) {
+  return `slug:${slug.toLowerCase()}`;
+}
+
+function normalizedTitleKey(title: string) {
+  return title
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim()
+    .replace(/\s+/g, " ");
+}
+
+function getReleaseYear(game: GameSummary) {
+  return game.releaseDate ? new Date(game.releaseDate).getFullYear() : null;
+}
+
+function metadataValue(game: GameSummary, key: string) {
+  const value = game.metadata[key];
+  return typeof value === "string" || typeof value === "number"
+    ? String(value)
+    : null;
+}
+
+export function getGameIdentityKeys(game: GameSummary) {
+  const keys = new Set<string>();
+  const titleKey = normalizedTitleKey(game.title);
+  const releaseYear = getReleaseYear(game);
+  const igdbId = metadataValue(game, "igdbId");
+  const igdbSlug = metadataValue(game, "igdbSlug");
+  const sourceSlug = metadataValue(game, "sourceSlug");
+
+  keys.add(`id:${game.id}`);
+  keys.add(`provider:${game.provider}:${game.providerGameId}`);
+  keys.add(getGameSlugIdentityKey(game.slug));
+
+  if (igdbId) {
+    keys.add(`igdb:${igdbId}`);
+  }
+  if (igdbSlug) {
+    keys.add(getGameSlugIdentityKey(igdbSlug));
+  }
+  if (sourceSlug) {
+    keys.add(getGameSlugIdentityKey(sourceSlug));
+  }
+  if (titleKey && releaseYear) {
+    keys.add(`title-year:${titleKey}:${releaseYear}`);
+  }
+
+  return Array.from(keys);
+}
+
+export function isGameInIdentitySet(
+  game: GameSummary,
+  gameIdentityKeys: Set<string>,
+) {
+  return getGameIdentityKeys(game).some((key) => gameIdentityKeys.has(key));
 }
 
 export function buildRecommendationProfile(
@@ -30,6 +90,8 @@ export function buildRecommendationProfile(
   const favoriteGameIds = new Set<string>();
   const excludedGameIds = new Set<string>();
   const answeredGameIds = new Set<string>();
+  const excludedGameKeys = new Set<string>();
+  const answeredGameKeys = new Set<string>();
   const highRatedGames: GameSummary[] = [];
   const preferredYears: number[] = [];
 
@@ -37,9 +99,15 @@ export function buildRecommendationProfile(
     const rating = entry.rating?.overallRating ?? 0;
     const status = entry.userGame.status;
     answeredGameIds.add(entry.game.id);
+    for (const key of getGameIdentityKeys(entry.game)) {
+      answeredGameKeys.add(key);
+    }
 
     if (status === "not_interested") {
       excludedGameIds.add(entry.game.id);
+      for (const key of getGameIdentityKeys(entry.game)) {
+        excludedGameKeys.add(key);
+      }
       continue;
     }
 
@@ -80,6 +148,8 @@ export function buildRecommendationProfile(
     favoriteGameIds,
     excludedGameIds,
     answeredGameIds,
+    excludedGameKeys,
+    answeredGameKeys,
     highRatedGames,
   };
 }
@@ -115,7 +185,10 @@ export function scoreGameForRecommendation(
   game: GameSummary,
   profile: RecommendationProfile,
 ): Recommendation {
-  if (profile.excludedGameIds.has(game.id)) {
+  if (
+    profile.excludedGameIds.has(game.id) ||
+    isGameInIdentitySet(game, profile.excludedGameKeys)
+  ) {
     return {
       game,
       score: Number.NEGATIVE_INFINITY,
@@ -123,7 +196,10 @@ export function scoreGameForRecommendation(
     };
   }
 
-  if (profile.answeredGameIds.has(game.id)) {
+  if (
+    profile.answeredGameIds.has(game.id) ||
+    isGameInIdentitySet(game, profile.answeredGameKeys)
+  ) {
     return {
       game,
       score: Number.NEGATIVE_INFINITY,

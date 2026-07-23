@@ -1,7 +1,12 @@
 import { DiscoveryClient } from "@/components/discover/discovery-client";
 import type { GameSummary } from "@/lib/games/types";
 import { getGameProvider } from "@/lib/games/provider";
-import { getRecommendations } from "@/lib/recommendations/scoring";
+import {
+  getGameIdentityKeys,
+  getGameSlugIdentityKey,
+  getRecommendations,
+  isGameInIdentitySet,
+} from "@/lib/recommendations/scoring";
 import { getCurrentUser } from "@/lib/server/current-user";
 import {
   getDiscoveryInteractionSlugs,
@@ -40,12 +45,16 @@ async function getDiscoveryGames(
     ? 1
     : Math.floor(Math.random() * 6) + 1;
   const candidates = await loadPopularGames(exploratoryPage);
-  const answeredSlugs = new Set([
-    ...entries.map((entry) => entry.game.slug),
-    ...discoverySlugs,
-  ]);
+  const answeredGameKeys = new Set(
+    discoverySlugs.map((slug) => getGameSlugIdentityKey(slug)),
+  );
+  for (const entry of entries) {
+    for (const key of getGameIdentityKeys(entry.game)) {
+      answeredGameKeys.add(key);
+    }
+  }
   const unansweredCandidates = candidates.filter(
-    (game) => !answeredSlugs.has(game.slug),
+    (game) => !isGameInIdentitySet(game, answeredGameKeys),
   );
 
   if (!hasTasteSignal) {
