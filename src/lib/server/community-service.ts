@@ -2,6 +2,7 @@ import { isSupabaseConfigured } from "@/lib/auth/env";
 import type { GameSummary } from "@/lib/games/types";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
+import { createFollowNotification } from "@/lib/server/notification-service";
 import type { Database, Json } from "@/lib/supabase/database.types";
 import { GAME_STATUSES } from "@/lib/types";
 import type {
@@ -489,6 +490,8 @@ export async function followPlayer(user: UserContext, input: FollowInput) {
   if (error) {
     throw new Error("Could not follow that player.");
   }
+
+  await createFollowNotification(user, input.followingId);
 }
 
 export async function unfollowPlayer(user: UserContext, input: FollowInput) {

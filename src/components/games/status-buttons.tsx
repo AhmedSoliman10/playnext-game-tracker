@@ -25,11 +25,11 @@ const statusActions: Array<{
   variant: "default" | "secondary" | "outline" | "ghost" | "danger";
   compactLabel: string;
 }> = [
-  { status: "played", icon: Check, variant: "default", compactLabel: "Played" },
+  { status: "played", icon: Check, variant: "outline", compactLabel: "Played" },
   {
     status: "playing",
     icon: Clock,
-    variant: "secondary",
+    variant: "outline",
     compactLabel: "Playing",
   },
   {
@@ -47,7 +47,7 @@ const statusActions: Array<{
   {
     status: "not_interested",
     icon: EyeOff,
-    variant: "danger",
+    variant: "outline",
     compactLabel: "Hide",
   },
   {
@@ -310,7 +310,7 @@ export function StatusButtons({
       title: activeLabel.title,
       variant:
         action.status === "not_interested"
-          ? ("secondary" as const)
+          ? ("danger" as const)
           : ("default" as const),
     };
   }

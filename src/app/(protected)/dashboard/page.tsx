@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Sparkles } from "lucide-react";
 import { GameCard } from "@/components/games/game-card";
 import { GameArtwork } from "@/components/games/game-artwork";
+import { PopularNowCarousel } from "@/components/games/popular-now-carousel";
 import { BarList } from "@/components/charts/bar-list";
 import { StatCard } from "@/components/profile/stat-card";
 import { Button } from "@/components/ui/button";
@@ -56,6 +57,12 @@ export default async function DashboardPage() {
         <StatCard label="Completed this year" value={stats.completedThisYear} />
         <StatCard label="Backlog" value={stats.backlogCount} />
       </div>
+
+      <PopularNowCarousel
+        games={games.slice(0, 12)}
+        title="Popular right now"
+        description="A quick pulse check from the catalog before the recommendation engine narrows things to your taste."
+      />
 
       <div className="grid gap-4 xl:grid-cols-[1.25fr_0.75fr]">
         <section className="space-y-4">

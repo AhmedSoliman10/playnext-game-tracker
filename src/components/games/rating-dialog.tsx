@@ -92,54 +92,35 @@ function RatingGrid({
   values,
   current,
   onSelect,
-  onSkip,
   ariaLabel,
-  allowSkip = true,
 }: {
   values: number[];
   current?: number | null;
   onSelect: (value: number | null) => void;
-  onSkip?: () => void;
   ariaLabel: string;
-  allowSkip?: boolean;
 }) {
   return (
-    <div className="space-y-3">
-      <div
-        className="grid grid-cols-3 gap-2 sm:grid-cols-5"
-        role="radiogroup"
-        aria-label={ariaLabel}
-      >
-        {values.map((value) => (
-          <button
-            key={value}
-            type="button"
-            role="radio"
-            aria-checked={current === value}
-            onClick={() => onSelect(value)}
-            className={`h-12 rounded-md border text-sm font-semibold transition focus-visible:outline-2 ${
-              current === value
-                ? "border-lime-300 bg-lime-300 text-zinc-950"
-                : "bg-zinc-950 text-zinc-200 hover:border-lime-300"
-            }`}
-          >
-            {value}
-          </button>
-        ))}
-      </div>
-      {allowSkip ? (
-        <Button
+    <div
+      className="grid grid-cols-3 gap-2 sm:grid-cols-5"
+      role="radiogroup"
+      aria-label={ariaLabel}
+    >
+      {values.map((value) => (
+        <button
+          key={value}
           type="button"
-          variant="ghost"
-          size="sm"
-          onClick={() => {
-            onSelect(null);
-            onSkip?.();
-          }}
+          role="radio"
+          aria-checked={current === value}
+          onClick={() => onSelect(value)}
+          className={`h-12 rounded-md border text-sm font-semibold transition focus-visible:outline-2 ${
+            current === value
+              ? "border-lime-300 bg-lime-300 text-zinc-950"
+              : "bg-zinc-950 text-zinc-200 hover:border-lime-300"
+          }`}
         >
-          Skip this detail
-        </Button>
-      ) : null}
+          {value}
+        </button>
+      ))}
     </div>
   );
 }
@@ -202,6 +183,18 @@ export function RatingDialog({
   const isLastStep = stepIndex === steps.length - 1;
   const hasOverallRating = typeof overallRating === "number";
   const canContinue = step.key !== "overallRating" || hasOverallRating;
+  const isPointChoiceStep =
+    step.key === "overallRating" ||
+    step.key === "storyRating" ||
+    step.key === "gameplayRating" ||
+    step.key === "visualsRating" ||
+    step.key === "soundtrackRating" ||
+    step.key === "difficultyRating";
+  const isBooleanChoiceStep =
+    step.key === "finished" || step.key === "wouldRecommend";
+  const showBottomSkip = step.optional && !isBooleanChoiceStep;
+  const showContinueButton =
+    !isLastStep && !isPointChoiceStep && !isBooleanChoiceStep;
 
   function resetDialog() {
     form.reset({
@@ -317,14 +310,20 @@ export function RatingDialog({
         <div className="grid gap-3 sm:grid-cols-3">
           <Button
             type="button"
-            onClick={() => setBooleanValue("finished", true)}
+            onClick={() => {
+              setBooleanValue("finished", true);
+              goNext();
+            }}
             variant={values.finished === true ? "default" : "outline"}
           >
             Yes
           </Button>
           <Button
             type="button"
-            onClick={() => setBooleanValue("finished", false)}
+            onClick={() => {
+              setBooleanValue("finished", false);
+              goNext();
+            }}
             variant={values.finished === false ? "default" : "outline"}
           >
             Not yet
@@ -348,7 +347,6 @@ export function RatingDialog({
             }
           }}
           ariaLabel="Overall rating from 1 to 10"
-          allowSkip={false}
         />
       );
     }
@@ -358,14 +356,20 @@ export function RatingDialog({
         <div className="grid grid-cols-3 gap-3">
           <Button
             type="button"
-            onClick={() => setBooleanValue("wouldRecommend", true)}
+            onClick={() => {
+              setBooleanValue("wouldRecommend", true);
+              goNext();
+            }}
             variant={values.wouldRecommend === true ? "default" : "outline"}
           >
             Yes
           </Button>
           <Button
             type="button"
-            onClick={() => setBooleanValue("wouldRecommend", false)}
+            onClick={() => {
+              setBooleanValue("wouldRecommend", false);
+              goNext();
+            }}
             variant={values.wouldRecommend === false ? "default" : "outline"}
           >
             No
@@ -402,7 +406,6 @@ export function RatingDialog({
             goNext();
           }
         }}
-        onSkip={skipCurrentStep}
         ariaLabel={`${step.title} Rating from 1 to 10`}
       />
     );
@@ -535,7 +538,7 @@ export function RatingDialog({
                   <ChevronLeft className="h-4 w-4" /> Back
                 </Button>
                 <div className="flex flex-col gap-2 sm:flex-row">
-                  {step.optional ? (
+                  {showBottomSkip ? (
                     <Button
                       type="button"
                       variant="ghost"
@@ -554,7 +557,7 @@ export function RatingDialog({
                       )}
                       Save rating
                     </Button>
-                  ) : (
+                  ) : showContinueButton ? (
                     <Button
                       key={`continue-rating-${stepIndex}`}
                       type="button"
@@ -564,7 +567,7 @@ export function RatingDialog({
                       {step.optional ? "Continue" : "Next"}{" "}
                       <ChevronRight className="h-4 w-4" />
                     </Button>
-                  )}
+                  ) : null}
                 </div>
               </div>
             </form>

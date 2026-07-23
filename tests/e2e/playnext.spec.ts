@@ -16,7 +16,10 @@ test("critical game tracking journey works with keyboard-accessible discovery", 
   await page.getByRole("button", { name: "Sign in" }).click();
   await expect(page).toHaveURL(/\/dashboard/);
 
-  await page.getByRole("link", { name: "Discover", exact: true }).click();
+  await Promise.all([
+    page.waitForURL(/\/discover/),
+    page.getByRole("link", { name: "Discover", exact: true }).click(),
+  ]);
   await expect(
     page.getByRole("heading", { name: "Have you played this game?" }),
   ).toBeVisible();
@@ -40,15 +43,13 @@ test("critical game tracking journey works with keyboard-accessible discovery", 
     page.getByRole("heading", { name: `Rate ${firstGameTitle}` }),
   ).toBeVisible();
   await page.getByRole("button", { name: "Yes" }).click();
-  await page.getByRole("button", { name: "Continue" }).click();
   await page.getByRole("radio", { name: "8.5" }).click();
 
   for (let step = 0; step < 5; step += 1) {
-    await page.getByRole("button", { name: "Continue" }).click();
+    await page.getByRole("button", { name: "Skip question" }).click();
   }
 
   await page.getByRole("button", { name: "Yes" }).click();
-  await page.getByRole("button", { name: "Continue" }).click();
   await expect(page.getByLabel("Short review")).toBeVisible();
   const saveRatingButton = page.getByRole("button", { name: "Save rating" });
   await expect(saveRatingButton).toBeEnabled();

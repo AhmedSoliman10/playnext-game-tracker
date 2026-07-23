@@ -3,23 +3,26 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Calendar, Clock3, Gamepad2, Star } from "lucide-react";
+import { BarList } from "@/components/charts/bar-list";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { GameArtwork } from "@/components/games/game-artwork";
 import { RatingDialog } from "@/components/games/rating-dialog";
 import { StatusButtons } from "@/components/games/status-buttons";
 import type { GameDetails, GameSummary } from "@/lib/games/types";
-import type { LibraryEntry } from "@/lib/types";
+import type { GameRatingBreakdown, LibraryEntry } from "@/lib/types";
 import { formatCompactDate } from "@/lib/utils";
 
 export function GameDetailsClient({
   game,
   initialEntry,
   similarGames,
+  ratingBreakdown,
 }: {
   game: GameDetails;
   initialEntry?: LibraryEntry | null;
   similarGames: GameSummary[];
+  ratingBreakdown: GameRatingBreakdown;
 }) {
   const [entry, setEntry] = useState<LibraryEntry | null>(initialEntry ?? null);
   const [ratingOpen, setRatingOpen] = useState(false);
@@ -147,6 +150,42 @@ export function GameDetailsClient({
           label="Favorite"
           value={entry?.userGame.isFavorite ? "Yes" : "No"}
         />
+      </section>
+
+      <section className="grid gap-4 lg:grid-cols-[0.7fr_1.3fr]">
+        <div className="rounded-lg border bg-panel p-5">
+          <p className="text-xs font-semibold uppercase text-zinc-500">
+            Player rating
+          </p>
+          <p className="mt-2 text-4xl font-black text-zinc-50">
+            {ratingBreakdown.averageRating
+              ? `${ratingBreakdown.averageRating}/10`
+              : "N/A"}
+          </p>
+          <p className="mt-2 text-sm text-zinc-400">
+            {ratingBreakdown.totalRatings
+              ? `${ratingBreakdown.totalRatings} player rating${
+                  ratingBreakdown.totalRatings === 1 ? "" : "s"
+                }`
+              : "No player ratings yet."}
+          </p>
+        </div>
+        <div className="rounded-lg border bg-panel p-5">
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <h2 className="text-lg font-bold">Rating breakdown</h2>
+            <span className="text-xs font-semibold uppercase text-zinc-500">
+              Players
+            </span>
+          </div>
+          <BarList
+            items={ratingBreakdown.distribution}
+            label={`${game.title} player rating breakdown`}
+            maxValue={Math.max(
+              1,
+              ...ratingBreakdown.distribution.map((item) => item.value),
+            )}
+          />
+        </div>
       </section>
 
       {entry?.rating?.review ? (

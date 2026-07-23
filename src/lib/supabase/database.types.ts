@@ -214,6 +214,39 @@ export interface Database {
         Update: never;
         Relationships: [];
       };
+      notifications: {
+        Row: {
+          id: string;
+          recipient_user_id: string;
+          actor_user_id: string | null;
+          game_id: string | null;
+          notification_type: Database["public"]["Enums"]["notification_type"];
+          title: string;
+          body: string;
+          link_href: string | null;
+          read_at: string | null;
+          metadata: Json;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          recipient_user_id: string;
+          actor_user_id?: string | null;
+          game_id?: string | null;
+          notification_type: Database["public"]["Enums"]["notification_type"];
+          title: string;
+          body: string;
+          link_href?: string | null;
+          read_at?: string | null;
+          metadata?: Json;
+          updated_at?: string;
+        };
+        Update: {
+          read_at?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
@@ -235,6 +268,7 @@ export interface Database {
         | "favorite"
         | "unfavorite";
       activity_type: "status_changed" | "rating_saved" | "favorite_changed";
+      notification_type: "followed_you" | "reaction" | "comment" | "system";
     };
     CompositeTypes: Record<string, never>;
   };

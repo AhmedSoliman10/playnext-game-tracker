@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { AppShell } from "@/components/layout/app-shell";
 import { getCurrentUser } from "@/lib/server/current-user";
+import { getNotifications } from "@/lib/server/notification-service";
 
 export default async function ProtectedLayout({
   children,
@@ -13,5 +14,11 @@ export default async function ProtectedLayout({
     redirect("/login");
   }
 
-  return <AppShell user={user}>{children}</AppShell>;
+  const notificationCenter = await getNotifications(user);
+
+  return (
+    <AppShell user={user} notificationCenter={notificationCenter}>
+      {children}
+    </AppShell>
+  );
 }

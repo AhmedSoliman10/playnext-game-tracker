@@ -85,6 +85,30 @@ export interface UserContext {
   isDemo: boolean;
 }
 
+export type NotificationType =
+  "followed_you" | "reaction" | "comment" | "system";
+
+export interface NotificationItem {
+  id: string;
+  type: NotificationType;
+  title: string;
+  body: string;
+  linkHref?: string | null;
+  readAt?: string | null;
+  createdAt: string;
+}
+
+export interface NotificationCenter {
+  notifications: NotificationItem[];
+  unreadCount: number;
+}
+
+export interface GameRatingBreakdown {
+  averageRating: number | null;
+  totalRatings: number;
+  distribution: Array<{ label: string; value: number }>;
+}
+
 export interface PublicProfile {
   id: string;
   displayName: string;

@@ -58,6 +58,27 @@ describe("StatusButtons", () => {
     expect(onRemoved).toHaveBeenCalledWith("the-witcher-3-wild-hunt");
   });
 
+  it("keeps inactive status buttons neutral until a status is selected", () => {
+    render(<StatusButtons gameSlug="hades" />);
+
+    const playedButton = screen.getByRole("button", {
+      name: "Yes, I played it",
+    });
+    const playingButton = screen.getByRole("button", {
+      name: "I am currently playing it",
+    });
+    const hiddenButton = screen.getByRole("button", {
+      name: "I am not interested",
+    });
+
+    expect(playedButton).toHaveAttribute("aria-pressed", "false");
+    expect(playingButton).toHaveAttribute("aria-pressed", "false");
+    expect(hiddenButton).toHaveAttribute("aria-pressed", "false");
+    expect(playedButton.className).not.toContain("bg-[#35d07f]");
+    expect(playingButton.className).not.toContain("bg-[#2b3742]");
+    expect(hiddenButton.className).not.toContain("bg-[#ef6461]");
+  });
+
   it("uses the active hidden status button as an unhide action", async () => {
     const fetchMock = mockFetchResponse({
       ok: true,

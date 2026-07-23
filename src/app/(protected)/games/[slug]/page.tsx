@@ -2,7 +2,10 @@ import { notFound } from "next/navigation";
 import { GameDetailsClient } from "@/components/games/game-details-client";
 import { fallbackGameProvider, getGameProvider } from "@/lib/games/provider";
 import { getCurrentUser } from "@/lib/server/current-user";
-import { getLibraryEntryBySlug } from "@/lib/server/library-service";
+import {
+  getGameRatingBreakdown,
+  getLibraryEntryBySlug,
+} from "@/lib/server/library-service";
 
 export async function generateMetadata({
   params,
@@ -34,9 +37,10 @@ export default async function GameDetailsPage({
   }
 
   const user = await getCurrentUser();
-  const [entry, similarGames] = await Promise.all([
+  const [entry, similarGames, ratingBreakdown] = await Promise.all([
     user ? getLibraryEntryBySlug(user, slug) : Promise.resolve(null),
     provider.getSimilarGames(game.id),
+    getGameRatingBreakdown(slug),
   ]);
 
   return (
@@ -44,6 +48,7 @@ export default async function GameDetailsPage({
       game={game}
       initialEntry={entry}
       similarGames={similarGames}
+      ratingBreakdown={ratingBreakdown}
     />
   );
 }

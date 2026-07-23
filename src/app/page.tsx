@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { PopularNowCarousel } from "@/components/games/popular-now-carousel";
 import { getGameProvider } from "@/lib/games/provider";
 
 export const revalidate = 21600;
@@ -38,7 +39,10 @@ function formatRating(value?: number | null) {
 }
 
 export default async function Home() {
-  const exampleGame = await getLandingExampleGame();
+  const [exampleGame, popularGames] = await Promise.all([
+    getLandingExampleGame(),
+    getGameProvider().getPopularGames({ pageSize: 12 }),
+  ]);
   const exampleTitle = exampleGame?.title ?? "Red Dead Redemption 2";
   const exampleCover =
     exampleGame?.provider === "igdb"
@@ -132,6 +136,14 @@ export default async function Home() {
             </div>
           </div>
         </div>
+      </section>
+
+      <section className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
+        <PopularNowCarousel
+          games={popularGames}
+          title="What players are circling now"
+          description="A cinematic scroll of highly rated games to start exploring before PlayNext learns your own taste."
+        />
       </section>
 
       <section className="mx-auto grid max-w-7xl gap-6 px-4 py-14 sm:px-6 md:grid-cols-3 lg:px-8">

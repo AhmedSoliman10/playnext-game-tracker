@@ -16,7 +16,13 @@ import {
   createSupabaseServerClient,
 } from "@/lib/supabase/server";
 import type { Database, Json } from "@/lib/supabase/database.types";
-import type { LibraryEntry, Rating, UserContext, UserGame } from "@/lib/types";
+import type {
+  GameRatingBreakdown,
+  LibraryEntry,
+  Rating,
+  UserContext,
+  UserGame,
+} from "@/lib/types";
 import type { RatingFormValues } from "@/lib/validation/rating";
 import type {
   FavoriteUpdateInput,
@@ -342,6 +348,83 @@ export async function getLibraryEntryBySlug(
 ): Promise<LibraryEntry | null> {
   const entries = await getLibraryEntries(user);
   return entries.find((entry) => entry.game.slug === slug) ?? null;
+}
+
+export async function getGameRatingBreakdown(
+  slug: string,
+): Promise<GameRatingBreakdown> {
+  const emptyDistribution = Array.from({ length: 10 }, (_, index) => ({
+    label: String(index + 1),
+    value: 0,
+  }));
+
+  if (!isSupabaseConfigured()) {
+    return {
+      averageRating: null,
+      totalRatings: 0,
+      distribution: emptyDistribution,
+    };
+  }
+
+  const admin = createSupabaseAdminClient();
+  if (!admin) {
+    return {
+      averageRating: null,
+      totalRatings: 0,
+      distribution: emptyDistribution,
+    };
+  }
+
+  const { data: gameRow, error: gameError } = await admin
+    .from("games")
+    .select("id")
+    .eq("slug", slug)
+    .maybeSingle();
+
+  if (gameError) {
+    throwDbError(gameError, "Could not load game rating stats.");
+  }
+
+  if (!gameRow) {
+    return {
+      averageRating: null,
+      totalRatings: 0,
+      distribution: emptyDistribution,
+    };
+  }
+
+  const { data: ratings, error: ratingsError } = await admin
+    .from("ratings")
+    .select("overall_rating")
+    .eq("game_id", gameRow.id);
+
+  if (ratingsError) {
+    throwDbError(ratingsError, "Could not load rating breakdown.");
+  }
+
+  const values = (ratings ?? []).map((rating) => rating.overall_rating);
+  if (!values.length) {
+    return {
+      averageRating: null,
+      totalRatings: 0,
+      distribution: emptyDistribution,
+    };
+  }
+
+  const distribution = emptyDistribution.map((item) => ({ ...item }));
+  for (const value of values) {
+    const bucket = Math.min(10, Math.max(1, Math.round(value)));
+    distribution[bucket - 1].value += 1;
+  }
+
+  return {
+    averageRating:
+      Math.round(
+        (values.reduce((sum, value) => sum + value, 0) / values.length) * 10,
+      ) / 10,
+    totalRatings: values.length,
+    distribution,
+  };
 }
 
 export async function updateUserGameStatus(

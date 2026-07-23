@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { getSafeNextPath } from "@/lib/auth/env";
 import { ratingFormSchema } from "@/lib/validation/rating";
 import { profileSchema, resetPasswordSchema } from "@/lib/validation/auth";
+import { notificationReadSchema } from "@/lib/validation/notifications";
 import { canTransitionStatus } from "@/lib/validation/status";
 
 describe("rating validation", () => {
@@ -92,5 +93,19 @@ describe("auth validation", () => {
         avatarUrl: "",
       }).success,
     ).toBe(false);
+  });
+});
+
+describe("notification validation", () => {
+  it("requires either notification ids or mark all", () => {
+    expect(notificationReadSchema.safeParse({ markAll: true }).success).toBe(
+      true,
+    );
+    expect(
+      notificationReadSchema.safeParse({
+        notificationIds: ["c8d77f20-e7e7-4ec4-bdb8-18a53caef203"],
+      }).success,
+    ).toBe(true);
+    expect(notificationReadSchema.safeParse({}).success).toBe(false);
   });
 });
