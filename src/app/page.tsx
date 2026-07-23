@@ -26,6 +26,11 @@ function getIgdbArtworkUrl(url?: string | null) {
   return url?.startsWith("https://images.igdb.com/") ? url : null;
 }
 
+function getIgdbHeroUrl(url?: string | null) {
+  const igdbUrl = getIgdbArtworkUrl(url);
+  return igdbUrl?.replace("/t_screenshot_big/", "/t_screenshot_huge/") ?? null;
+}
+
 function formatRating(value?: number | null) {
   return typeof value === "number"
     ? value.toFixed(1).replace(/\.0$/, "")
@@ -42,7 +47,8 @@ export default async function Home() {
       : "/landing-card-cover.svg";
   const exampleBackground =
     exampleGame?.provider === "igdb"
-      ? (getIgdbArtworkUrl(exampleGame.backgroundImageUrl) ??
+      ? (getIgdbHeroUrl(exampleGame.screenshots[0]) ??
+        getIgdbArtworkUrl(exampleGame.backgroundImageUrl) ??
         "/social-preview.svg")
       : "/social-preview.svg";
   const exampleRating = formatRating(exampleGame?.externalRating) ?? "9.4";
