@@ -42,6 +42,12 @@ export function getAuthCallbackUrl(request: Request, next = "/dashboard") {
   return callbackUrl.toString();
 }
 
+export function getAuthConfirmUrl(request: Request, next = "/dashboard") {
+  const callbackUrl = new URL("/auth/confirm", getAppOrigin(request));
+  callbackUrl.searchParams.set("next", next);
+  return callbackUrl.toString();
+}
+
 export function getSafeNextPath(value: string | null, fallback = "/dashboard") {
   if (!value || !value.startsWith("/")) {
     return fallback;

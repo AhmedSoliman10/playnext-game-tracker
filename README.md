@@ -87,14 +87,20 @@ Never expose `SUPABASE_SERVICE_ROLE_KEY` or `IGDB_CLIENT_SECRET` to browser code
 5. Set `NEXT_PUBLIC_APP_URL` to your local or deployed app URL.
 6. In Supabase Auth URL settings, set the Site URL to your deployed app URL and add redirect URLs:
    - `http://localhost:8000/auth/callback`
+   - `http://localhost:8000/auth/confirm`
    - `https://your-domain.example/auth/callback`
+   - `https://your-domain.example/auth/confirm`
    - `https://your-domain.example/reset-password`
 
-Password reset emails are sent to `/auth/callback?next=/reset-password`; the callback exchanges the Supabase code and then opens `/reset-password`.
+Password reset emails are sent to `/auth/confirm?next=/reset-password`; the client confirmation page handles both PKCE `code` links and hash-token recovery links before opening `/reset-password`.
 
 ## Database Migration
 
 Run the migration in `supabase/migrations/202607180001_playnext_initial_schema.sql` using the Supabase SQL editor or CLI.
+
+Newer migrations should be applied in timestamp order. The community/profile controls live in:
+
+- `supabase/migrations/202607230001_profiles_community_auth_controls.sql`
 
 With Supabase CLI:
 
@@ -114,6 +120,8 @@ supabase db reset
 or run `supabase/seed.sql` in the SQL editor after applying the migration.
 
 The app also has a built-in seeded provider, so local demo mode works before Supabase is configured.
+
+To intentionally remove all Auth users and let cascade rules clear their profile/library data, run `supabase/delete-all-auth-users.sql` in the Supabase SQL editor.
 
 ## IGDB Setup
 

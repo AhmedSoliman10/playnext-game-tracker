@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
   APP_URL,
-  getAuthCallbackUrl,
+  getAuthConfirmUrl,
   isSupabaseConfigured,
 } from "@/lib/auth/env";
 import {
@@ -13,6 +13,10 @@ import { clientRateLimitKey, errorResponse, readJson } from "@/lib/server/http";
 import { checkRateLimit } from "@/lib/server/rate-limit";
 import { createSupabaseRouteClient } from "@/lib/supabase/route";
 import { signUpSchema } from "@/lib/validation/auth";
+
+function normalizeDisplayName(value: string) {
+  return value.trim().replace(/\s+/g, " ").toLowerCase();
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -51,12 +55,27 @@ export async function POST(request: NextRequest) {
     }
 
     const supabase = createSupabaseRouteClient(request, response);
+    const normalizedDisplayName = normalizeDisplayName(input.displayName);
+    const { data: existingProfile, error: existingProfileError } =
+      await supabase!
+        .from("profiles")
+        .select("id")
+        .eq("display_name_normalized", normalizedDisplayName)
+        .maybeSingle();
+
+    if (!existingProfileError && existingProfile) {
+      return NextResponse.json(
+        { error: "That display name is taken. Choose another one." },
+        { status: 409 },
+      );
+    }
+
     const { data, error } = await supabase!.auth.signUp({
       email: input.email,
       password: input.password,
       options: {
         data: { display_name: input.displayName },
-        emailRedirectTo: getAuthCallbackUrl(request),
+        emailRedirectTo: getAuthConfirmUrl(request, "/login?verified=1"),
       },
     });
 
@@ -73,8 +92,7 @@ export async function POST(request: NextRequest) {
     if (!data.session) {
       return NextResponse.json({
         ok: true,
-        message:
-          "Account created. Check your email to confirm it, then sign in.",
+        redirectTo: "/login?created=1",
       });
     }
 

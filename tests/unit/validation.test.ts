@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { getSafeNextPath } from "@/lib/auth/env";
 import { ratingFormSchema } from "@/lib/validation/rating";
-import { resetPasswordSchema } from "@/lib/validation/auth";
+import { profileSchema, resetPasswordSchema } from "@/lib/validation/auth";
 import { canTransitionStatus } from "@/lib/validation/status";
 
 describe("rating validation", () => {
@@ -76,5 +76,21 @@ describe("auth validation", () => {
     expect(getSafeNextPath("/reset-password")).toBe("/reset-password");
     expect(getSafeNextPath("https://example.com")).toBe("/dashboard");
     expect(getSafeNextPath("//example.com")).toBe("/dashboard");
+  });
+
+  it("validates public display names", () => {
+    expect(
+      profileSchema.safeParse({
+        displayName: "KiloPower",
+        avatarUrl: "",
+      }).success,
+    ).toBe(true);
+
+    expect(
+      profileSchema.safeParse({
+        displayName: "<script>",
+        avatarUrl: "",
+      }).success,
+    ).toBe(false);
   });
 });

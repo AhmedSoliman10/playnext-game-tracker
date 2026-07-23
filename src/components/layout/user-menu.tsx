@@ -25,7 +25,16 @@ export function UserMenu({ user }: { user: UserContext }) {
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="secondary" size="sm" aria-label="Open user menu">
-          <User className="h-4 w-4" />
+          {user.avatarUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={user.avatarUrl}
+              alt=""
+              className="h-5 w-5 rounded-sm object-cover"
+            />
+          ) : (
+            <User className="h-4 w-4" />
+          )}
           <span className="hidden max-w-32 truncate sm:inline">
             {user.displayName ?? "Player"}
           </span>

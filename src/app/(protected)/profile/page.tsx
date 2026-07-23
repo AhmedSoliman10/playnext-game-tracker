@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { UserRound } from "lucide-react";
 import { BarList } from "@/components/charts/bar-list";
 import { GameArtwork } from "@/components/games/game-artwork";
 import { StatCard } from "@/components/profile/stat-card";
@@ -22,14 +23,22 @@ export default async function ProfilePage() {
 
   return (
     <section className="space-y-8">
-      <div>
-        <p className="text-sm font-medium text-cyan-200">
-          Profile and statistics
-        </p>
-        <h1 className="text-3xl font-bold">{user?.displayName ?? "Player"}</h1>
-        <p className="mt-2 text-zinc-400">
-          {personality.label}: {personality.explanation}
-        </p>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+        <ProfileAvatar
+          src={user?.avatarUrl}
+          name={user?.displayName ?? "Player"}
+        />
+        <div>
+          <p className="text-sm font-medium text-cyan-200">
+            Profile and statistics
+          </p>
+          <h1 className="text-3xl font-bold">
+            {user?.displayName ?? "Player"}
+          </h1>
+          <p className="mt-2 text-zinc-400">
+            {personality.label}: {personality.explanation}
+          </p>
+        </div>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
@@ -154,5 +163,24 @@ export default async function ProfilePage() {
         )}
       </section>
     </section>
+  );
+}
+
+function ProfileAvatar({ src, name }: { src?: string | null; name: string }) {
+  if (src) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={src}
+        alt={`${name} avatar`}
+        className="h-24 w-24 rounded-lg border object-cover"
+      />
+    );
+  }
+
+  return (
+    <span className="inline-flex h-24 w-24 items-center justify-center rounded-lg border bg-panel text-zinc-400">
+      <UserRound className="h-10 w-10" aria-hidden />
+    </span>
   );
 }

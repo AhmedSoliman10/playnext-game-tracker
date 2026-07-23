@@ -49,6 +49,16 @@ export async function POST(request: NextRequest) {
     const supabase = createSupabaseRouteClient(request, response);
     const { error } = await supabase!.auth.signInWithPassword(input);
     if (error) {
+      if (error.message.toLowerCase().includes("email not confirmed")) {
+        return NextResponse.json(
+          {
+            error:
+              "Your email is not verified yet. Open the confirmation link Supabase sent to your inbox, then sign in.",
+          },
+          { status: 403 },
+        );
+      }
+
       return NextResponse.json(
         { error: "We could not sign you in with those credentials." },
         { status: 401 },

@@ -5,6 +5,7 @@ export const DEMO_SESSION_COOKIE = "playnext_demo_user";
 export function createDemoUser(
   email: string,
   displayName?: string | null,
+  avatarUrl?: string | null,
 ): UserContext {
   const normalizedEmail = email.trim().toLowerCase();
   return {
@@ -12,6 +13,7 @@ export function createDemoUser(
     email: normalizedEmail,
     displayName:
       displayName?.trim() || normalizedEmail.split("@")[0] || "Demo player",
+    avatarUrl: avatarUrl ?? null,
     isDemo: true,
   };
 }
@@ -22,6 +24,7 @@ export function encodeDemoSession(user: UserContext) {
       userId: user.userId,
       email: user.email,
       displayName: user.displayName,
+      avatarUrl: user.avatarUrl,
     }),
   );
 }
@@ -36,6 +39,7 @@ export function decodeDemoSession(value?: string | null): UserContext | null {
       userId?: string;
       email?: string;
       displayName?: string;
+      avatarUrl?: string;
     };
 
     if (!parsed.userId?.startsWith("demo:")) {
@@ -46,6 +50,7 @@ export function decodeDemoSession(value?: string | null): UserContext | null {
       userId: parsed.userId,
       email: parsed.email ?? null,
       displayName: parsed.displayName ?? "Demo player",
+      avatarUrl: parsed.avatarUrl ?? null,
       isDemo: true,
     };
   } catch {

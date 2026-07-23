@@ -1,0 +1,13 @@
+import { cn } from "@/lib/utils";
+
+export function Skeleton({ className }: { className?: string }) {
+  return (
+    <div
+      aria-hidden
+      className={cn(
+        "animate-pulse rounded-md bg-zinc-800/80 shadow-inner shadow-white/5",
+        className,
+      )}
+    />
+  );
+}

@@ -18,4 +18,12 @@ describe("BarList", () => {
     expect(screen.getByText("9")).toBeInTheDocument();
     expect(screen.getByText("4")).toBeInTheDocument();
   });
+
+  it("does not render progress for zero values", () => {
+    render(<BarList label="Empty chart" items={[{ label: "1", value: 0 }]} />);
+
+    expect(screen.getByRole("meter", { name: "1: 0" })).toHaveStyle({
+      width: "0%",
+    });
+  });
 });

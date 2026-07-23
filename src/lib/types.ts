@@ -80,7 +80,19 @@ export interface UserContext {
   userId: string;
   email?: string | null;
   displayName?: string | null;
+  avatarUrl?: string | null;
   isDemo: boolean;
+}
+
+export interface PublicProfile {
+  id: string;
+  displayName: string;
+  avatarUrl?: string | null;
+  createdAt: string;
+  followersCount: number;
+  followingCount: number;
+  isFollowing: boolean;
+  isCurrentUser: boolean;
 }
 
 export interface ActivityItem {

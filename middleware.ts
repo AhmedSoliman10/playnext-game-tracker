@@ -6,6 +6,7 @@ const DEMO_SESSION_COOKIE = "playnext_demo_user";
 const protectedPrefixes = [
   "/dashboard",
   "/discover",
+  "/community",
   "/library",
   "/search",
   "/games",

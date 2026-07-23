@@ -54,7 +54,13 @@ function safeRedirectPath(value?: string | null) {
 export function AuthForm({ mode, demoMode }: AuthFormProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [serverMessage, setServerMessage] = useState<string | null>(null);
+  const [serverMessage, setServerMessage] = useState<string | null>(
+    mode === "sign-in" && searchParams.get("verified") === "1"
+      ? "Your email is verified. You can sign in now."
+      : mode === "sign-in" && searchParams.get("created") === "1"
+        ? "Account created. Check your email to verify it, then sign in."
+        : null,
+  );
   const [serverError, setServerError] = useState<string | null>(null);
   const {
     register,

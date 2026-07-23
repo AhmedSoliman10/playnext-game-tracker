@@ -13,6 +13,8 @@ export interface Database {
         Row: {
           id: string;
           display_name: string | null;
+          display_name_normalized: string | null;
+          display_name_changed_at: string;
           avatar_url: string | null;
           created_at: string;
           updated_at: string;
@@ -20,12 +22,16 @@ export interface Database {
         Insert: {
           id: string;
           display_name?: string | null;
+          display_name_normalized?: string | null;
+          display_name_changed_at?: string;
           avatar_url?: string | null;
           created_at?: string;
           updated_at?: string;
         };
         Update: {
           display_name?: string | null;
+          display_name_normalized?: string | null;
+          display_name_changed_at?: string;
           avatar_url?: string | null;
           updated_at?: string;
         };
@@ -187,6 +193,20 @@ export interface Database {
           game_id: string;
           activity_type: Database["public"]["Enums"]["activity_type"];
           metadata?: Json;
+        };
+        Update: never;
+        Relationships: [];
+      };
+      follows: {
+        Row: {
+          follower_id: string;
+          following_id: string;
+          created_at: string;
+        };
+        Insert: {
+          follower_id: string;
+          following_id: string;
+          created_at?: string;
         };
         Update: never;
         Relationships: [];

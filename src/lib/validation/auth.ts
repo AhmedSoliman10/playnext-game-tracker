@@ -30,8 +30,22 @@ export const resetPasswordSchema = z
   });
 
 export const profileSchema = z.object({
-  displayName: z.string().trim().min(2).max(80),
+  displayName: z
+    .string()
+    .trim()
+    .min(2, "Use at least 2 characters.")
+    .max(32, "Display names can be at most 32 characters.")
+    .regex(
+      /^[a-zA-Z0-9 _.-]+$/,
+      "Use letters, numbers, spaces, dots, dashes, or underscores.",
+    ),
   avatarUrl: z.string().trim().url().nullable().optional().or(z.literal("")),
+});
+
+export const deleteAccountSchema = z.object({
+  confirmation: z.literal("DELETE", {
+    error: "Type DELETE to confirm account deletion.",
+  }),
 });
 
 export type SignInInput = z.infer<typeof signInSchema>;
@@ -39,3 +53,4 @@ export type SignUpInput = z.infer<typeof signUpSchema>;
 export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
 export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
 export type ProfileInput = z.infer<typeof profileSchema>;
+export type DeleteAccountInput = z.infer<typeof deleteAccountSchema>;

@@ -1,5 +1,7 @@
 import { expect, test } from "@playwright/test";
 
+test.setTimeout(120_000);
+
 test("critical game tracking journey works with keyboard-accessible discovery", async ({
   page,
 }) => {

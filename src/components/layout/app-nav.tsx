@@ -9,6 +9,7 @@ import {
   Search,
   Sparkles,
   User,
+  UsersRound,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -16,6 +17,7 @@ const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/discover", label: "Discover", icon: Sparkles },
   { href: "/library", label: "Library", icon: Library },
+  { href: "/community", label: "Community", icon: UsersRound },
   { href: "/search", label: "Search", icon: Search },
   { href: "/profile", label: "Profile", icon: User },
 ];
@@ -55,7 +57,7 @@ export function MobileNav() {
 
   return (
     <nav
-      className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t bg-zinc-950/95 backdrop-blur md:hidden"
+      className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-6 border-t bg-zinc-950/95 backdrop-blur md:hidden"
       aria-label="Mobile navigation"
     >
       {navItems.map((item) => {

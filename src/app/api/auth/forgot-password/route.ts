@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAuthCallbackUrl, isSupabaseConfigured } from "@/lib/auth/env";
+import { getAuthConfirmUrl, isSupabaseConfigured } from "@/lib/auth/env";
 import { clientRateLimitKey, errorResponse, readJson } from "@/lib/server/http";
 import { checkRateLimit } from "@/lib/server/rate-limit";
 import { createSupabaseRouteClient } from "@/lib/supabase/route";
@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
       const { error } = await supabase!.auth.resetPasswordForEmail(
         input.email,
         {
-          redirectTo: getAuthCallbackUrl(request, "/reset-password"),
+          redirectTo: getAuthConfirmUrl(request, "/reset-password"),
         },
       );
 

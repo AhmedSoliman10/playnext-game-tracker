@@ -28,13 +28,25 @@ export async function getCurrentUser(): Promise<UserContext | null> {
     return null;
   }
 
+  const fallbackDisplayName =
+    typeof user.user_metadata.display_name === "string"
+      ? user.user_metadata.display_name
+      : (user.email?.split("@")[0] ?? "Player");
+  const fallbackAvatarUrl =
+    typeof user.user_metadata.avatar_url === "string"
+      ? user.user_metadata.avatar_url
+      : null;
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("display_name, avatar_url")
+    .eq("id", user.id)
+    .maybeSingle();
+
   return {
     userId: user.id,
     email: user.email ?? null,
-    displayName:
-      typeof user.user_metadata.display_name === "string"
-        ? user.user_metadata.display_name
-        : (user.email?.split("@")[0] ?? "Player"),
+    displayName: profile?.display_name ?? fallbackDisplayName,
+    avatarUrl: profile?.avatar_url ?? fallbackAvatarUrl,
     isDemo: false,
   };
 }
