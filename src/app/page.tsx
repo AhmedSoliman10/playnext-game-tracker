@@ -10,8 +10,38 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { getGameProvider } from "@/lib/games/provider";
 
-export default function Home() {
+export const revalidate = 21600;
+
+async function getLandingExampleGame() {
+  try {
+    return await getGameProvider().getGameBySlug("red-dead-redemption-2");
+  } catch {
+    return null;
+  }
+}
+
+function getIgdbArtworkUrl(url?: string | null) {
+  return url?.startsWith("https://images.igdb.com/") ? url : null;
+}
+
+function formatRating(value?: number | null) {
+  return typeof value === "number"
+    ? value.toFixed(1).replace(/\.0$/, "")
+    : null;
+}
+
+export default async function Home() {
+  const exampleGame = await getLandingExampleGame();
+  const exampleTitle = exampleGame?.title ?? "Red Dead Redemption 2";
+  const exampleCover =
+    exampleGame?.provider === "igdb"
+      ? (getIgdbArtworkUrl(exampleGame.coverImageUrl) ??
+        "/landing-card-cover.svg")
+      : "/landing-card-cover.svg";
+  const exampleRating = formatRating(exampleGame?.externalRating) ?? "9.4";
+
   return (
     <main className="min-h-screen bg-background">
       <section className="relative flex min-h-[78vh] items-center overflow-hidden border-b bg-zinc-950">
@@ -58,8 +88,8 @@ export default function Home() {
           <div className="hidden items-end justify-center lg:flex">
             <div className="w-full max-w-sm rounded-lg border bg-zinc-950/88 p-4 shadow-xl">
               <Image
-                src="/landing-card-cover.svg"
-                alt="Example PlayNext game card cover"
+                src={exampleCover}
+                alt={`Example PlayNext game card cover for ${exampleTitle}`}
                 width={600}
                 height={900}
                 priority
@@ -68,14 +98,19 @@ export default function Home() {
               />
               <div className="space-y-3 pt-4">
                 <div className="flex items-center justify-between gap-4">
-                  <h2 className="text-xl font-bold">Red Dead Redemption 2</h2>
+                  <h2 className="text-xl font-bold">{exampleTitle}</h2>
                   <span className="inline-flex items-center gap-1 text-sm text-lime-200">
-                    <Star className="h-4 w-4 fill-lime-200" /> 9.4
+                    <Star className="h-4 w-4 fill-lime-200" /> {exampleRating}
                   </span>
                 </div>
                 <p className="text-sm text-zinc-300">
                   Have you played this game?
                 </p>
+                {exampleGame?.provider === "igdb" ? (
+                  <p className="text-xs text-zinc-500">
+                    Game metadata and artwork powered by IGDB.
+                  </p>
+                ) : null}
                 <div className="grid grid-cols-2 gap-2">
                   <Button size="sm">Played</Button>
                   <Button size="sm" variant="secondary">
