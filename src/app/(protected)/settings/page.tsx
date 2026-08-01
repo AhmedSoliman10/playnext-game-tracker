@@ -22,7 +22,7 @@ function discordErrorMessage(reason?: string) {
   }
 
   if (reason === "already-linked") {
-    return "That Discord account is already connected to another PlayNext account. Sign in with that Discord account first, or use a different Discord account.";
+    return "That Discord account is already connected to another Playnira account. Sign in with that Discord account first, or use a different Discord account.";
   }
 
   if (reason === "manual-linking-disabled") {
@@ -42,7 +42,7 @@ function discordErrorMessage(reason?: string) {
   }
 
   if (reason === "redirect-url") {
-    return "Supabase blocked the Discord callback URL. Add https://playnext-game-tracker.vercel.app/auth/callback to the Supabase redirect URLs, then try again.";
+    return "Supabase blocked the Discord callback URL. Add https://playnira-game-tracker.vercel.app/auth/callback to the Supabase redirect URLs, then try again.";
   }
 
   if (reason === "supabase") {
@@ -63,7 +63,7 @@ export default async function SettingsPage({
   );
   const discordSuccess =
     firstParam(rawSearchParams.discord_linked) === "1"
-      ? "Discord is connected to your PlayNext profile."
+      ? "Discord is connected to your Playnira profile."
       : null;
   const user = await getCurrentUser();
   let avatarUrl: string | null = null;

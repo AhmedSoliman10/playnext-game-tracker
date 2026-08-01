@@ -1,6 +1,6 @@
 # Code of Conduct
 
-PlayNext should be a practical, respectful place to build.
+Playnira should be a practical, respectful place to build.
 
 ## Expected Behavior
 

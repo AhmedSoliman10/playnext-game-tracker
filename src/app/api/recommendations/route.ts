@@ -75,7 +75,7 @@ function getExploratoryRecommendations(
     .map((game) => ({
       game,
       score: 0,
-      reasons: ["A fresh discovery pick while PlayNext learns your taste."],
+      reasons: ["A fresh discovery pick while Playnira learns your taste."],
     }));
 }
 

@@ -1,23 +1,23 @@
-# PlayNext
+# Playnira
 
-[![CI](https://github.com/AhmedSoliman10/playnext-game-tracker/actions/workflows/ci.yml/badge.svg)](https://github.com/AhmedSoliman10/playnext-game-tracker/actions/workflows/ci.yml)
+[![CI](https://github.com/AhmedSoliman10/playnira-game-tracker/actions/workflows/ci.yml/badge.svg)](https://github.com/AhmedSoliman10/playnira-game-tracker/actions/workflows/ci.yml)
 ![Next.js](https://img.shields.io/badge/Next.js-16-black)
 ![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178c6)
 ![Supabase](https://img.shields.io/badge/Supabase-auth%20and%20Postgres-3ecf8e)
 ![IGDB](https://img.shields.io/badge/IGDB-live%20game%20metadata-9146ff)
 ![License](https://img.shields.io/badge/license-MIT-limegreen)
 
-**Rate what you played. Organize your backlog. Discover what comes next.**
+**Your games. Your journey.**
 
-**Live demo:** https://playnext-game-tracker.vercel.app
+**Live demo:** https://playnira-game-tracker.vercel.app
 
-PlayNext is a conversational game-tracking web app for swipe-based discovery, ratings, reviews, personal libraries, statistics, and deterministic recommendations. It feels more like a friendly gaming assistant than a traditional database site.
+Playnira is a conversational game-tracking web app for swipe-based discovery, ratings, reviews, personal libraries, statistics, and deterministic recommendations. It feels more like a friendly gaming assistant than a traditional database site.
 
-![PlayNext social preview](public/social-preview.svg)
+![Playnira social preview](public/social-preview.svg)
 
 ## Why It Exists
 
-Most game databases are great at storing information, but weak at helping players decide what to play next. PlayNext turns game tracking into a guided flow:
+Most game databases are great at storing information, but weak at helping players decide what to play next. Playnira turns game tracking into a guided flow:
 
 - answer whether you played, dropped, skipped, or want a game
 - rate played games through a step-by-step conversation
@@ -68,7 +68,7 @@ Open:
 http://localhost:8000
 ```
 
-Without Supabase credentials, PlayNext runs in local demo mode. Demo mode stores a local session cookie and file-backed demo library data in `.playnext-data/`.
+Without Supabase credentials, Playnira runs in local demo mode. Demo mode stores a local session cookie and file-backed demo library data in `.playnira-data/`.
 
 ## Environment Variables
 
@@ -84,7 +84,7 @@ SMTP_PORT=587
 SMTP_SECURE=false
 SMTP_USER=
 SMTP_PASSWORD=
-SMTP_FROM="PlayNext <playnext.app.mail@gmail.com>"
+SMTP_FROM="Playnira <playnira.app.mail@gmail.com>"
 ADMIN_EMAILS=
 ADMIN_USER_IDS=
 CRON_SECRET=
@@ -92,6 +92,8 @@ NEXT_PUBLIC_APP_URL=http://localhost:8000
 ```
 
 Never expose `SUPABASE_SERVICE_ROLE_KEY`, `IGDB_CLIENT_SECRET`, `STEAM_API_KEY`, `SMTP_PASSWORD`, or `CRON_SECRET` to browser code. They are only used server-side.
+
+For full brand, domain, Supabase, Discord, and email rename steps, see [docs/REBRAND.md](docs/REBRAND.md).
 
 ## Supabase Setup
 
@@ -120,11 +122,11 @@ For Gmail SMTP:
 
 1. Create a dedicated Gmail or Google Workspace mailbox for auth email.
 2. Turn on 2-Step Verification for that Google account.
-3. Create an App Password for PlayNext.
+3. Create an App Password for Playnira.
 4. In Supabase, open Authentication -> Settings -> SMTP Settings.
 5. Enable Custom SMTP and use:
    - Sender email: the Gmail address
-   - Sender name: `PlayNext`
+   - Sender name: `Playnira`
    - SMTP host: `smtp.gmail.com`
    - SMTP port: `587`
    - SMTP username: the Gmail address
@@ -133,7 +135,7 @@ For Gmail SMTP:
 
 Gmail is fine for early testing, but a transactional provider such as Resend, Postmark, SendGrid, or AWS SES is a better long-term production choice.
 
-PlayNext also sends product-update and weekly-digest email from the app itself. Add the same mailbox or a transactional provider to these deployment variables:
+Playnira also sends product-update and weekly-digest email from the app itself. Add the same mailbox or a transactional provider to these deployment variables:
 
 - `SMTP_HOST`
 - `SMTP_PORT`
@@ -142,7 +144,7 @@ PlayNext also sends product-update and weekly-digest email from the app itself. 
 - `SMTP_PASSWORD`
 - `SMTP_FROM`
 
-Set `ADMIN_EMAILS` to a comma-separated allowlist of PlayNext admin emails that may trigger product emails. Set `CRON_SECRET` to a long random value; Vercel Cron uses it to call the weekly digest route.
+Set `ADMIN_EMAILS` to a comma-separated allowlist of Playnira admin emails that may trigger product emails. Set `CRON_SECRET` to a long random value; Vercel Cron uses it to call the weekly digest route.
 
 ## Discord OAuth Setup
 
@@ -151,15 +153,15 @@ The app includes a Discord sign-in button and an account-linking flow for users 
 1. In Supabase, open Authentication -> Providers -> Discord.
 2. Copy the Supabase callback URL shown there. It looks like:
    - `https://your-project-ref.supabase.co/auth/v1/callback`
-3. In the Discord Developer Portal, create a PlayNext application.
+3. In the Discord Developer Portal, create a Playnira application.
 4. Open OAuth2 and add the Supabase callback URL under Redirects.
 5. Copy the Discord Client ID and Client Secret.
 6. Paste them into Supabase's Discord provider settings and enable Discord.
-7. In Supabase Auth URL settings, keep these PlayNext redirect URLs:
-   - `https://playnext-game-tracker.vercel.app/auth/callback`
-   - `https://playnext-game-tracker.vercel.app/auth/confirm`
-   - `https://playnext-game-tracker.vercel.app/auth/confirm/signup`
-   - `https://playnext-game-tracker.vercel.app/auth/confirm/reset`
+7. In Supabase Auth URL settings, keep these Playnira redirect URLs:
+   - `https://playnira-game-tracker.vercel.app/auth/callback`
+   - `https://playnira-game-tracker.vercel.app/auth/confirm`
+   - `https://playnira-game-tracker.vercel.app/auth/confirm/signup`
+   - `https://playnira-game-tracker.vercel.app/auth/confirm/reset`
    - `http://localhost:8000/auth/callback`
    - `http://localhost:8000/auth/confirm`
    - `http://localhost:8000/auth/confirm/signup`
@@ -170,12 +172,12 @@ Existing email/password users can connect Discord later from `/settings`.
 
 The Discord Developer Portal app icon is available at:
 
-- `public/playnext-discord-app-icon.png`
-- `public/playnext-discord-app-icon.svg`
+- `public/playnira-discord-app-icon.png`
+- `public/playnira-discord-app-icon.svg`
 
 ## Database Migration
 
-Run the migration in `supabase/migrations/202607180001_playnext_initial_schema.sql` using the Supabase SQL editor or CLI.
+Run the migration in `supabase/migrations/202607180001_playnira_initial_schema.sql` using the Supabase SQL editor or CLI.
 
 Newer migrations should be applied in timestamp order. The community/profile controls live in:
 
@@ -219,17 +221,17 @@ IGDB_CLIENT_ID=your_twitch_client_id
 IGDB_CLIENT_SECRET=your_twitch_client_secret
 ```
 
-Provider order is IGDB, then the seeded catalog. If credentials are missing or IGDB is unavailable, PlayNext falls back to seeded data.
+Provider order is IGDB, then the seeded catalog. If credentials are missing or IGDB is unavailable, Playnira falls back to seeded data.
 
 ## Library Import And Export
 
 From `/settings`, signed-in users can export their library as CSV, import that CSV again, or import a public Steam library by Steam profile URL, custom ID, or SteamID64. Imported Steam games are added to Backlog instead of Played because Steam public library data does not reliably mean a game was completed.
 
-For reliable production Steam imports, set `STEAM_API_KEY`. Steam's older public XML library endpoint may return a login page even for public profiles, so PlayNext uses the official Steam Web API whenever the key exists. Vanity URLs also require `STEAM_API_KEY`; SteamID64 imports can be attempted without resolving a vanity name, but the official API is still recommended.
+For reliable production Steam imports, set `STEAM_API_KEY`. Steam's older public XML library endpoint may return a login page even for public profiles, so Playnira uses the official Steam Web API whenever the key exists. Vanity URLs also require `STEAM_API_KEY`; SteamID64 imports can be attempted without resolving a vanity name, but the official API is still recommended.
 
 ## Product Email And Weekly Digest
 
-PlayNext includes two server-only email flows:
+Playnira includes two server-only email flows:
 
 - `POST /api/admin/email/whats-new` sends a product-update email to signed-in users and creates an in-app system notification.
 - `GET /api/cron/weekly-digest` sends weekly digest email to users with the digest preference enabled.
@@ -269,7 +271,7 @@ Playwright uses port `3100` to avoid colliding with a local dev server on `8000`
 
 ## Deployment
 
-PlayNext supports normal Next.js Node deployments.
+Playnira supports normal Next.js Node deployments.
 
 1. Configure the environment variables in your hosting provider.
 2. Apply Supabase migrations and seed data.
@@ -281,7 +283,7 @@ For a public demo, you can omit Supabase and IGDB credentials to run the seeded 
 Current public demo:
 
 ```text
-https://playnext-game-tracker.vercel.app
+https://playnira-game-tracker.vercel.app
 ```
 
 ## Security Model
@@ -344,7 +346,7 @@ Good first areas:
 
 ## Known Limitations
 
-- Demo mode is for local development and stores library data in `.playnext-data/demo-store.json`.
+- Demo mode is for local development and stores library data in `.playnira-data/demo-store.json`.
 - Discord OAuth needs provider credentials enabled in Supabase before it can complete sign-in.
 - Recommendation templates are deterministic and do not call an AI API.
 - Live IGDB metadata sync needs `SUPABASE_SERVICE_ROLE_KEY` if games are not already seeded in Supabase.

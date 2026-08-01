@@ -79,7 +79,7 @@ export function emailLayout({
   body,
   ctaHref,
   ctaLabel,
-  footer = "You are receiving this because you have a PlayNext account. Manage email preferences from Settings.",
+  footer = "You are receiving this because you have a Playnira account. Manage email preferences from Settings.",
 }: {
   preheader: string;
   title: string;
@@ -109,7 +109,7 @@ export function emailLayout({
           <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:640px;background:#182027;border:1px solid #334151;border-radius:14px;overflow:hidden;">
             <tr>
               <td style="padding:28px 28px 12px;">
-                <div style="display:inline-block;background:#67e8f9;color:#081014;border-radius:8px;padding:8px 10px;font-weight:800;">PlayNext</div>
+                <div style="display:inline-block;background:#67e8f9;color:#081014;border-radius:8px;padding:8px 10px;font-weight:800;">Playnira</div>
                 <h1 style="margin:24px 0 0;font-size:30px;line-height:1.12;color:#ffffff;">${safeTitle}</h1>
               </td>
             </tr>

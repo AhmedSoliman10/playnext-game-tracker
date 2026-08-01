@@ -1,5 +1,5 @@
 <svg width="600" height="900" viewBox="0 0 600 900" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
-  <title id="title">PlayNext example game cover</title>
+  <title id="title">Playnira example game cover</title>
   <desc id="desc">Original neon game cover artwork with a handheld console, cards, and discovery symbols.</desc>
   <rect width="600" height="900" fill="#09090b"/>
   <rect x="34" y="34" width="532" height="832" rx="38" fill="#11151b" stroke="#35404b" stroke-width="3"/>
@@ -20,6 +20,6 @@
   <rect x="128" y="706" width="248" height="16" rx="8" fill="#e5e7eb"/>
   <rect x="128" y="738" width="314" height="12" rx="6" fill="#9ca3af"/>
   <rect x="128" y="764" width="206" height="12" rx="6" fill="#64748b"/>
-  <text x="126" y="154" fill="#f8fafc" font-family="Inter, Arial, sans-serif" font-size="56" font-weight="900">PlayNext</text>
-  <text x="130" y="190" fill="#a7f3d0" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="700">choose what comes next</text>
+  <text x="126" y="154" fill="#f8fafc" font-family="Inter, Arial, sans-serif" font-size="56" font-weight="900">Playnira</text>
+  <text x="130" y="190" fill="#a7f3d0" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="700">Your games. Your journey.</text>
 </svg>

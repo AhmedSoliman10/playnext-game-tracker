@@ -346,7 +346,7 @@ export function scoreGameForRecommendation(
   }
 
   if (reasons.length === 0) {
-    reasons.push("Recommended as a fresh pick from the PlayNext catalog.");
+    reasons.push("Recommended as a fresh pick from the Playnira catalog.");
   }
 
   return {
@@ -381,7 +381,7 @@ export function recommendationMessage(
       ? "here are a few games you may like."
       : recommendationCount === 1
         ? "here is another game you may like."
-        : "keep exploring and PlayNext will keep learning your taste.";
+        : "keep exploring and Playnira will keep learning your taste.";
   const sourceGenres = source?.genres.slice(0, 2).join(" and ").toLowerCase();
   const sourceClause = sourceGenres
     ? ` Because you enjoyed ${sourceGenres}, ${nextGameClause}`

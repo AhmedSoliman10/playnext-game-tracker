@@ -1,7 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { type NextRequest, NextResponse } from "next/server";
 
-const DEMO_SESSION_COOKIE = "playnext_demo_user";
+const DEMO_SESSION_COOKIE = "playnira_demo_user";
 
 const protectedPrefixes = [
   "/dashboard",
@@ -15,7 +15,7 @@ const protectedPrefixes = [
 ];
 
 function isSupabaseConfigured() {
-  if (process.env.PLAYNEXT_FORCE_DEMO === "true") {
+  if (process.env.PLAYNIRA_FORCE_DEMO === "true") {
     return false;
   }
 

@@ -16,7 +16,7 @@ export async function POST(request: Request) {
   const isTrustedCron = isCronRequestAuthorized(request);
   if (!isTrustedCron && !isAdminUser(user)) {
     return NextResponse.json(
-      { error: "Only a PlayNext admin can send product emails." },
+      { error: "Only a Playnira admin can send product emails." },
       { status: 403 },
     );
   }

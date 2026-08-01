@@ -659,7 +659,7 @@ export async function toggleCommunityPostReaction(
         actor: user,
         type: "reaction",
         title: "New post reaction",
-        body: `${user.displayName ?? "A PlayNext player"} reacted to ${target.gameTitle}.`,
+        body: `${user.displayName ?? "A Playnira player"} reacted to ${target.gameTitle}.`,
         linkHref: target.linkHref,
         metadata: {
           postId: input.postId,
@@ -719,7 +719,7 @@ export async function addCommunityPostComment(
       actor: user,
       type: "comment",
       title: "New post comment",
-      body: `${user.displayName ?? "A PlayNext player"} commented on ${target.gameTitle}.`,
+      body: `${user.displayName ?? "A Playnira player"} commented on ${target.gameTitle}.`,
       linkHref: target.linkHref,
       metadata: { postId: input.postId, commentId: comment.id },
     });

@@ -60,14 +60,14 @@ describe("auth validation", () => {
   it("requires matching reset passwords", () => {
     expect(
       resetPasswordSchema.safeParse({
-        password: "playnext-demo",
-        confirmPassword: "playnext-demo",
+        password: "playnira-demo",
+        confirmPassword: "playnira-demo",
       }).success,
     ).toBe(true);
 
     expect(
       resetPasswordSchema.safeParse({
-        password: "playnext-demo",
+        password: "playnira-demo",
         confirmPassword: "different-password",
       }).success,
     ).toBe(false);

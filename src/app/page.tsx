@@ -79,11 +79,10 @@ export default async function Home() {
             </Badge>
             <div className="space-y-5">
               <h1 className="text-5xl font-black tracking-normal text-zinc-50 sm:text-6xl lg:text-7xl">
-                PlayNext
+                Playnira
               </h1>
               <p className="max-w-xl text-xl font-medium leading-8 text-zinc-100">
-                Rate what you played. Organize your backlog. Discover what comes
-                next.
+                Your games. Your journey.
               </p>
               <p className="max-w-2xl text-base leading-7 text-zinc-300">
                 A friendly gaming assistant that asks one clear question at a
@@ -106,7 +105,7 @@ export default async function Home() {
             <div className="w-full max-w-sm rounded-lg border bg-zinc-950/88 p-4 shadow-xl">
               <Image
                 src={exampleCover}
-                alt={`Example PlayNext game card cover for ${exampleTitle}`}
+                alt={`Example Playnira game card cover for ${exampleTitle}`}
                 width={600}
                 height={900}
                 loading="eager"
@@ -144,7 +143,7 @@ export default async function Home() {
         <PopularNowCarousel
           games={popularGames}
           title="What players are circling now"
-          description="A cinematic scroll of highly rated games to start exploring before PlayNext learns your own taste."
+          description="A cinematic scroll of highly rated games to start exploring before Playnira learns your own taste."
         />
       </section>
 
@@ -158,7 +157,7 @@ export default async function Home() {
           {
             icon: MessageSquareText,
             title: "Rate conversationally",
-            text: "When you played something, PlayNext walks through the useful details without making every field mandatory.",
+            text: "When you played something, Playnira walks through the useful details without making every field mandatory.",
           },
           {
             icon: Library,
@@ -220,7 +219,7 @@ export default async function Home() {
       </section>
 
       <footer className="border-t px-4 py-8 text-center text-sm text-zinc-500">
-        PlayNext is an original swipe-based game discovery experience.
+        Playnira is an original swipe-based game discovery experience.
       </footer>
     </main>
   );

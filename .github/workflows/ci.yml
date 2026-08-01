@@ -11,7 +11,7 @@ jobs:
     name: Validate
     runs-on: ubuntu-latest
     env:
-      PLAYNEXT_FORCE_DEMO: "true"
+      PLAYNIRA_FORCE_DEMO: "true"
       NEXT_PUBLIC_APP_URL: http://127.0.0.1:3100
     steps:
       - name: Checkout

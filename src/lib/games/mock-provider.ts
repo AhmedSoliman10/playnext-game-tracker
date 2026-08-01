@@ -116,7 +116,7 @@ export class SeedGameProvider implements GameProvider {
       page,
       pageSize,
       hasNextPage: page * pageSize < filtered.length,
-      attribution: "Seeded demo catalog maintained by PlayNext.",
+      attribution: "Seeded demo catalog maintained by Playnira.",
     };
   }
 

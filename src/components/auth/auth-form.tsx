@@ -86,8 +86,8 @@ export function AuthForm({ mode, demoMode }: AuthFormProps) {
       schemaForMode(mode),
     ) as unknown as Resolver<FormValues>,
     defaultValues: {
-      email: demoMode ? "demo@playnext.local" : "",
-      password: demoMode && mode !== "forgot-password" ? "playnext-demo" : "",
+      email: demoMode ? "demo@playnira.local" : "",
+      password: demoMode && mode !== "forgot-password" ? "playnira-demo" : "",
       displayName: "",
     },
   });
@@ -136,7 +136,7 @@ export function AuthForm({ mode, demoMode }: AuthFormProps) {
 
   const title =
     mode === "sign-up"
-      ? "Create your PlayNext account"
+      ? "Create your Playnira account"
       : mode === "forgot-password"
         ? "Reset your password"
         : "Welcome back";

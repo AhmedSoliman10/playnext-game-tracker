@@ -16,11 +16,10 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "PlayNext",
-    template: "%s | PlayNext",
+    default: "Playnira",
+    template: "%s | Playnira",
   },
-  description:
-    "Rate what you played. Organize your backlog. Discover what comes next.",
+  description: "Your games. Your journey.",
 };
 
 export default function RootLayout({

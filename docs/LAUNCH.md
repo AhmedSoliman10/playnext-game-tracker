@@ -1,4 +1,4 @@
-# PlayNext Launch Checklist
+# Playnira Launch Checklist
 
 Use this checklist when you are ready to promote the repository.
 
@@ -31,18 +31,18 @@ Use this checklist when you are ready to promote the repository.
 Short version:
 
 ```text
-I built PlayNext, an open-source game tracker that uses swipe-based discovery, conversational ratings, personal libraries, and deterministic recommendations.
+I built Playnira, an open-source game tracker that uses swipe-based discovery, conversational ratings, personal libraries, and deterministic recommendations.
 
 Built with Next.js, TypeScript, Supabase, Tailwind CSS, and IGDB.
 
-Repo: https://github.com/AhmedSoliman10/playnext-game-tracker
-Demo: https://playnext-game-tracker.vercel.app
+Repo: https://github.com/AhmedSoliman10/playnira-game-tracker
+Demo: https://playnira-game-tracker.vercel.app
 ```
 
 Long version:
 
 ```text
-PlayNext is an open-source web app for deciding what game to play next.
+Playnira is an open-source web app for deciding what game to play next.
 
 It lets you answer each game conversationally, rate played games, organize your backlog, and get explainable recommendations based on your ratings, favorite genres, platforms, and previous decisions.
 

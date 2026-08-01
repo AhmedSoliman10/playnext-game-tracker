@@ -348,7 +348,7 @@ export function normalizeIgdbGame(game: IgdbGame): GameSummary {
     description:
       game.summary?.trim() ||
       game.storyline?.trim() ||
-      "No description is available yet, but PlayNext can still track your status and rating.",
+      "No description is available yet, but Playnira can still track your status and rating.",
     coverImageUrl: coverUrl,
     backgroundImageUrl: backgroundUrl,
     releaseDate: dateFromUnixSeconds(game.first_release_date),

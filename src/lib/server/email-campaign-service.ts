@@ -88,18 +88,18 @@ function whatsNewBody(displayName: string, request?: Request) {
   const settingsHref = appHref("/settings", request);
   return `
     <p style="margin:0 0 18px;">Hey ${escapeHtml(displayName)},</p>
-    <p style="margin:0 0 18px;">PlayNext just got a big upgrade. It is no longer only a place to track games; it is starting to feel like a tiny gaming community built around your taste.</p>
+    <p style="margin:0 0 18px;">Playnira just got a big upgrade. It is no longer only a place to track games; it is starting to feel like a tiny gaming community built around your taste.</p>
     <ul style="margin:0 0 18px;padding-left:20px;">
       <li><strong>Discord connect:</strong> link Discord from Settings and show it on your profile.</li>
       <li><strong>Community hub:</strong> write posts, attach games, save posts, share links, and keep conversations going with comments.</li>
       <li><strong>Public profiles:</strong> browse libraries, ratings, reviews, shelves, and taste compatibility.</li>
-      <li><strong>Community reactions and comments:</strong> respond to public activity without leaving PlayNext.</li>
+      <li><strong>Community reactions and comments:</strong> respond to public activity without leaving Playnira.</li>
       <li><strong>Custom shelves:</strong> make your own public or private game collections.</li>
-      <li><strong>Steam and CSV import:</strong> move your library into PlayNext faster.</li>
-      <li><strong>Smarter recommendations:</strong> hide, tune, and explain the games PlayNext suggests next.</li>
+      <li><strong>Steam and CSV import:</strong> move your library into Playnira faster.</li>
+      <li><strong>Smarter recommendations:</strong> hide, tune, and explain the games Playnira suggests next.</li>
       <li><strong>Weekly digest:</strong> get the best activity and next-game picks in your inbox.</li>
     </ul>
-    <p style="margin:0 0 18px;">The best test is simple: open PlayNext, rate one game you truly loved, then check what it recommends next.</p>
+    <p style="margin:0 0 18px;">The best test is simple: open Playnira, rate one game you truly loved, then check what it recommends next.</p>
     <p style="margin:0;color:#94a3b8;font-size:13px;">You can manage weekly digest email from <a href="${escapeHtml(settingsHref)}" style="color:#67e8f9;">Settings</a>.</p>
   `;
 }
@@ -107,7 +107,7 @@ function whatsNewBody(displayName: string, request?: Request) {
 function whatsNewText(displayName: string, request?: Request) {
   return `Hey ${displayName},
 
-PlayNext just got a big upgrade.
+Playnira just got a big upgrade.
 
 New:
 - Discord connect from Settings
@@ -119,7 +119,7 @@ New:
 - Smarter recommendation feedback
 - Weekly digest emails
 
-Open PlayNext, rate one game you truly loved, and check what it recommends next:
+Open Playnira, rate one game you truly loved, and check what it recommends next:
 ${appHref("/dashboard", request)}
 
 Manage email preferences:
@@ -137,10 +137,10 @@ async function createWhatsNewNotifications(recipients: EmailRecipient[]) {
   const rows = recipients.map((recipient) => ({
     recipient_user_id: recipient.userId,
     notification_type: "system" as const,
-    title: "PlayNext just got social",
+    title: "Playnira just got social",
     body: "Community posts, Discord connect, public profiles, shelves, Steam import, and smarter recommendation feedback are live.",
     link_href: "/dashboard",
-    metadata: { campaign: "playnext-social-update-2026-08-01" },
+    metadata: { campaign: "playnira-social-update-2026-08-01" },
     created_at: now,
     updated_at: now,
   }));
@@ -186,12 +186,12 @@ export async function sendWhatsNewCampaign({
       await sendEmail({
         to: recipient.email,
         subject:
-          "PlayNext just got social: posts, Discord, shelves, Steam import, and smarter picks",
+          "Playnira just got social: posts, Discord, shelves, Steam import, and smarter picks",
         text: whatsNewText(recipient.displayName, request),
         html: emailLayout({
           preheader:
             "Community posts, Discord connect, public profiles, shelves, Steam import, and smarter recommendations are live.",
-          title: "PlayNext just got a serious upgrade",
+          title: "Playnira just got a serious upgrade",
           body: whatsNewBody(recipient.displayName, request),
           ctaHref: appHref("/dashboard", request),
           ctaLabel: "See what's new",
@@ -298,7 +298,7 @@ async function digestBody(recipient: EmailRecipient, request?: Request) {
     .join("");
 
   return `
-    <p style="margin:0 0 18px;">Hey ${escapeHtml(recipient.displayName)}, here is your PlayNext week.</p>
+    <p style="margin:0 0 18px;">Hey ${escapeHtml(recipient.displayName)}, here is your Playnira week.</p>
     <div style="background:#11181f;border:1px solid #334151;border-radius:12px;padding:16px;margin:0 0 18px;">
       <p style="margin:0;"><strong>${stats.notificationCount}</strong> community update${stats.notificationCount === 1 ? "" : "s"} this week</p>
       <p style="margin:8px 0 0;"><strong>${stats.ratingCount}</strong> rating update${stats.ratingCount === 1 ? "" : "s"} saved this week</p>
@@ -318,7 +318,7 @@ async function digestBody(recipient: EmailRecipient, request?: Request) {
 function digestText(recipient: EmailRecipient, request?: Request) {
   return `Hey ${recipient.displayName},
 
-Your weekly PlayNext digest is ready.
+Your weekly Playnira digest is ready.
 
 Open your dashboard:
 ${appHref("/dashboard", request)}
@@ -361,15 +361,15 @@ export async function sendWeeklyDigestCampaign({
     try {
       await sendEmail({
         to: recipient.email,
-        subject: "Your PlayNext weekly digest is ready",
+        subject: "Your Playnira weekly digest is ready",
         text: digestText(recipient, request),
         html: emailLayout({
           preheader:
             "Community updates, backlog reminders, and popular games for your week.",
-          title: "Your PlayNext week",
+          title: "Your Playnira week",
           body: await digestBody(recipient, request),
           ctaHref: appHref("/dashboard", request),
-          ctaLabel: "Open PlayNext",
+          ctaLabel: "Open Playnira",
         }),
       });
       result.sent += 1;

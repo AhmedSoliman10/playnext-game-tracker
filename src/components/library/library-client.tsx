@@ -99,7 +99,7 @@ export function LibraryClient({
         <EmptyState
           icon={LibraryBig}
           title="No games here yet."
-          description="Answer a few discovery cards or search for a favorite title. PlayNext will keep the list updated from your choices."
+          description="Answer a few discovery cards or search for a favorite title. Playnira will keep the list updated from your choices."
           actionHref="/discover"
           actionLabel="Open discovery"
           secondaryHref="/search"

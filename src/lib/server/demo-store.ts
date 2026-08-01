@@ -25,7 +25,7 @@ interface DemoStoreFile {
   users: Record<string, LibraryState>;
 }
 
-const storePath = path.join(process.cwd(), ".playnext-data", "demo-store.json");
+const storePath = path.join(process.cwd(), ".playnira-data", "demo-store.json");
 
 async function readStore(): Promise<DemoStoreFile> {
   try {

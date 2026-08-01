@@ -1,6 +1,6 @@
 import type { UserContext } from "@/lib/types";
 
-export const DEMO_SESSION_COOKIE = "playnext_demo_user";
+export const DEMO_SESSION_COOKIE = "playnira_demo_user";
 
 export function createDemoUser(
   email: string,

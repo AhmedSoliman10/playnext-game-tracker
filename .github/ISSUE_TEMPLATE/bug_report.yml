@@ -1,11 +1,11 @@
 name: Bug report
-description: Report something broken in PlayNext
+description: Report something broken in Playnira
 title: "Bug: "
 labels: ["bug"]
 body:
   - type: markdown
     attributes:
-      value: Thanks for helping improve PlayNext.
+      value: Thanks for helping improve Playnira.
   - type: textarea
     id: what-happened
     attributes:

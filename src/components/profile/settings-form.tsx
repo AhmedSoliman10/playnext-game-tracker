@@ -257,7 +257,7 @@ export function SettingsForm({
           <p className="text-sm font-medium text-cyan-200">Account</p>
           <h1 className="text-3xl font-bold">Settings</h1>
           <p className="mt-2 text-sm text-zinc-400">
-            Shape how other PlayNext players see you. Display names are unique
+            Shape how other Playnira players see you. Display names are unique
             and can be changed once every 5 days.
           </p>
           {demoMode ? (
@@ -377,7 +377,7 @@ export function SettingsForm({
                 <p className="truncate font-semibold">
                   {discord.username ?? "Discord connected"}
                 </p>
-                <p className="text-sm text-zinc-400">Connected to PlayNext</p>
+                <p className="text-sm text-zinc-400">Connected to Playnira</p>
               </div>
             </div>
           ) : (
@@ -414,7 +414,7 @@ export function SettingsForm({
             <div>
               <h2 className="text-lg font-bold">Notifications</h2>
               <p className="mt-1 text-sm text-zinc-400">
-                Choose which community events show up in your PlayNext inbox.
+                Choose which community events show up in your Playnira inbox.
               </p>
             </div>
           </div>
@@ -486,7 +486,7 @@ export function SettingsForm({
             <div>
               <h2 className="text-lg font-bold">Library transfer</h2>
               <p className="mt-1 text-sm text-zinc-400">
-                Export your PlayNext library or paste a CSV with slug, status,
+                Export your Playnira library or paste a CSV with slug, status,
                 isFavorite, overallRating, and review columns.
               </p>
             </div>

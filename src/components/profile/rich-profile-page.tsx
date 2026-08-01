@@ -125,7 +125,7 @@ export function RichProfilePage({
               <div>
                 <p className="text-sm font-medium text-cyan-200">
                   {profile.isCurrentUser
-                    ? "Your PlayNext profile"
+                    ? "Your Playnira profile"
                     : "Public player profile"}
                 </p>
                 <div className="mt-1 flex flex-wrap items-center gap-3">

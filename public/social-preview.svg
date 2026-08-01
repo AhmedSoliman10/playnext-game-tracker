@@ -1,6 +1,6 @@
 <svg width="1280" height="640" viewBox="0 0 1280 640" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
-  <title id="title">PlayNext social preview</title>
-  <desc id="desc">Dark gaming interface preview with cover cards, ratings, and the PlayNext tagline.</desc>
+  <title id="title">Playnira social preview</title>
+  <desc id="desc">Dark gaming interface preview with cover cards, ratings, and the Playnira tagline.</desc>
   <rect width="1280" height="640" fill="#09090b"/>
   <rect x="48" y="48" width="1184" height="544" rx="28" fill="#121417" stroke="#2a2f35" stroke-width="2"/>
   <path d="M72 516C206 392 288 410 390 300C494 188 600 142 746 178C876 210 958 148 1208 74V592H72V516Z" fill="#18211d"/>
@@ -13,9 +13,9 @@
   <rect x="130" y="466" width="160" height="14" rx="7" fill="#e5e7eb"/>
   <rect x="130" y="488" width="110" height="10" rx="5" fill="#71717a"/>
   <rect x="440" y="118" width="690" height="404" rx="20" fill="#15181d" stroke="#303740"/>
-  <text x="480" y="188" fill="#f8fafc" font-family="Inter, Arial, sans-serif" font-size="76" font-weight="900">PlayNext</text>
-  <text x="482" y="236" fill="#a7f3d0" font-family="Inter, Arial, sans-serif" font-size="26" font-weight="700">Rate what you played. Organize your backlog.</text>
-  <text x="482" y="272" fill="#a7f3d0" font-family="Inter, Arial, sans-serif" font-size="26" font-weight="700">Discover what comes next.</text>
+  <text x="480" y="188" fill="#f8fafc" font-family="Inter, Arial, sans-serif" font-size="76" font-weight="900">Playnira</text>
+  <text x="482" y="236" fill="#a7f3d0" font-family="Inter, Arial, sans-serif" font-size="26" font-weight="700">Your games. Your journey.</text>
+  <text x="482" y="272" fill="#94a3b8" font-family="Inter, Arial, sans-serif" font-size="22" font-weight="700">Swipe, rate, review, and find your next game.</text>
   <rect x="482" y="326" width="170" height="52" rx="14" fill="#34d399"/>
   <text x="514" y="360" fill="#062014" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="800">Played 8.5</text>
   <rect x="668" y="326" width="172" height="52" rx="14" fill="#1f2937" stroke="#3f4652"/>

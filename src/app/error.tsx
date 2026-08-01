@@ -12,7 +12,7 @@ export default function GlobalError({
   return (
     <main className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="w-full max-w-lg rounded-lg border bg-panel p-6 text-center">
-        <h1 className="text-2xl font-bold">PlayNext hit a snag.</h1>
+        <h1 className="text-2xl font-bold">Playnira hit a snag.</h1>
         <p className="mt-2 text-zinc-400">
           {error.message ||
             "Something unexpected happened while loading this page."}

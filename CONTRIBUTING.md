@@ -1,6 +1,6 @@
-# Contributing to PlayNext
+# Contributing to Playnira
 
-Thanks for helping make PlayNext better. The project is young, so useful issues, focused pull requests, and clear bug reports all matter.
+Thanks for helping make Playnira better. The project is young, so useful issues, focused pull requests, and clear bug reports all matter.
 
 ## Local Setup
 
@@ -37,7 +37,7 @@ npm run test:e2e
 - Keep PRs focused on one feature or fix.
 - Include screenshots for UI changes.
 - Add or update tests when business logic changes.
-- Do not commit `.env.local`, logs, `.playnext-data`, build output, or credentials.
+- Do not commit `.env.local`, logs, `.playnira-data`, build output, or credentials.
 - Prefer existing patterns and small components over large rewrites.
 - Explain user impact in the PR body.
 

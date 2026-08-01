@@ -114,7 +114,7 @@ export default async function DashboardPage() {
             <EmptyState
               icon={Sparkles}
               title="Recommendations need a little taste data."
-              description="Rate a few played games or mark titles as want-to-play so PlayNext can rank your next picks with better context."
+              description="Rate a few played games or mark titles as want-to-play so Playnira can rank your next picks with better context."
               actionHref="/discover"
               actionLabel="Start discovery"
               secondaryHref="/search"

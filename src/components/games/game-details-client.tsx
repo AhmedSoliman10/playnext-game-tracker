@@ -214,7 +214,7 @@ export function GameDetailsClient({
           <div>
             <h2 className="text-2xl font-bold">Player reviews</h2>
             <p className="mt-1 text-sm text-zinc-400">
-              Comments and score breakdowns from public PlayNext profiles.
+              Comments and score breakdowns from public Playnira profiles.
             </p>
           </div>
           <Button

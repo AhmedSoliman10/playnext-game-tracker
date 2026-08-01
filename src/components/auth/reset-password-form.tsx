@@ -62,7 +62,7 @@ export function ResetPasswordForm() {
       <div className="space-y-2">
         <h1 className="text-2xl font-bold">Choose a new password</h1>
         <p className="text-sm text-zinc-400">
-          Enter a new password for your PlayNext account.
+          Enter a new password for your Playnira account.
         </p>
       </div>
 

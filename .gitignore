@@ -38,8 +38,8 @@ yarn-error.log*
 # vercel
 .vercel
 
-# local PlayNext/demo/test artifacts
-.playnext-data/
+# local Playnira/demo/test artifacts
+.playnira-data/
 test-results/
 playwright-report/
 coverage/

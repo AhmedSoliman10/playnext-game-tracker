@@ -263,7 +263,7 @@ export async function createFollowNotification(
     return;
   }
 
-  const actorName = follower.displayName ?? "A PlayNext player";
+  const actorName = follower.displayName ?? "A Playnira player";
   const { error } = await admin.from("notifications").insert({
     recipient_user_id: followingId,
     actor_user_id: follower.userId,

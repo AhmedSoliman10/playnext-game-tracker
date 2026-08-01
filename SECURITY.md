@@ -2,7 +2,7 @@
 
 ## Supported Versions
 
-The `main` branch is the only supported version while PlayNext is early-stage.
+The `main` branch is the only supported version while Playnira is early-stage.
 
 ## Reporting a Vulnerability
 

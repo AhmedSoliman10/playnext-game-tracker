@@ -84,7 +84,7 @@ async function fetchJson<T>(url: string): Promise<T> {
     const response = await fetch(url, {
       signal: controller.signal,
       headers: {
-        "user-agent": "PlayNext game tracker import",
+        "user-agent": "Playnira game tracker import",
       },
     });
     if (!response.ok) {
@@ -165,7 +165,7 @@ async function fetchPublicSteamLibrary(profile: string) {
     const response = await fetch(url, {
       signal: controller.signal,
       headers: {
-        "user-agent": "PlayNext game tracker import",
+        "user-agent": "Playnira game tracker import",
       },
     });
     if (!response.ok) {

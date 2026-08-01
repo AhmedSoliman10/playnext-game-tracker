@@ -17,7 +17,7 @@ export async function GET() {
     return new Response(csv, {
       headers: {
         "content-type": "text/csv; charset=utf-8",
-        "content-disposition": 'attachment; filename="playnext-library.csv"',
+        "content-disposition": 'attachment; filename="playnira-library.csv"',
       },
     });
   } catch (error) {

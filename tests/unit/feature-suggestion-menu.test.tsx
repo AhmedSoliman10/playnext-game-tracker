@@ -8,16 +8,16 @@ describe("FeatureSuggestionMenu", () => {
     render(<FeatureSuggestionMenu />);
 
     await userEvent.click(
-      screen.getByRole("button", { name: "Suggest a PlayNext feature" }),
+      screen.getByRole("button", { name: "Suggest a Playnira feature" }),
     );
 
     expect(screen.getByText("Suggest a feature")).toBeInTheDocument();
-    expect(screen.getByText("playnext.app.mail@gmail.com")).toBeInTheDocument();
+    expect(screen.getByText("playnira.app.mail@gmail.com")).toBeInTheDocument();
     expect(
       screen.getByRole("menuitem", { name: "Email suggestion" }),
     ).toHaveAttribute(
       "href",
-      expect.stringContaining("mailto:playnext.app.mail@gmail.com"),
+      expect.stringContaining("mailto:playnira.app.mail@gmail.com"),
     );
   });
 });

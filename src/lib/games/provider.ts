@@ -62,7 +62,7 @@ export function getGameProvider(): GameProvider {
     return provider;
   }
 
-  if (process.env.PLAYNEXT_FORCE_DEMO === "true") {
+  if (process.env.PLAYNIRA_FORCE_DEMO === "true") {
     provider = fallbackGameProvider;
     return provider;
   }

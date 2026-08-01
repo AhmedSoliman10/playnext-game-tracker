@@ -1,6 +1,6 @@
 export const APP_URL =
   process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:8000";
-export const OAUTH_NEXT_COOKIE = "playnext_oauth_next";
+export const OAUTH_NEXT_COOKIE = "playnira_oauth_next";
 
 function normalizeOrigin(value: string) {
   try {
@@ -71,7 +71,7 @@ export function getSafeNextPath(value: string | null, fallback = "/dashboard") {
 }
 
 export function isSupabaseConfigured() {
-  if (process.env.PLAYNEXT_FORCE_DEMO === "true") {
+  if (process.env.PLAYNIRA_FORCE_DEMO === "true") {
     return false;
   }
 

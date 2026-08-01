@@ -46,7 +46,7 @@ function normalizeSearchOptions(
 const readCachedPopularGames = unstable_cache(
   async (options: NormalizedPopularOptions) =>
     getGameProvider().getPopularGames(options),
-  ["playnext-game-provider-popular-v1"],
+  ["playnira-game-provider-popular-v1"],
   {
     revalidate: POPULAR_REVALIDATE_SECONDS,
     tags: ["game-provider", "popular-games"],
@@ -56,7 +56,7 @@ const readCachedPopularGames = unstable_cache(
 const readCachedSearchGames = unstable_cache(
   async (query: string, options: NormalizedSearchOptions) =>
     getGameProvider().searchGames(query, options),
-  ["playnext-game-provider-search-v1"],
+  ["playnira-game-provider-search-v1"],
   {
     revalidate: SEARCH_REVALIDATE_SECONDS,
     tags: ["game-provider", "game-search"],
@@ -67,7 +67,7 @@ const readCachedGameBySlug = unstable_cache(
   async (slug: string) =>
     (await getGameProvider().getGameBySlug(slug)) ??
     fallbackGameProvider.getGameBySlug(slug),
-  ["playnext-game-provider-details-v1"],
+  ["playnira-game-provider-details-v1"],
   {
     revalidate: DETAILS_REVALIDATE_SECONDS,
     tags: ["game-provider", "game-details"],
@@ -76,7 +76,7 @@ const readCachedGameBySlug = unstable_cache(
 
 const readCachedSimilarGames = unstable_cache(
   async (gameId: string) => getGameProvider().getSimilarGames(gameId),
-  ["playnext-game-provider-similar-v1"],
+  ["playnira-game-provider-similar-v1"],
   {
     revalidate: DETAILS_REVALIDATE_SECONDS,
     tags: ["game-provider", "similar-games"],

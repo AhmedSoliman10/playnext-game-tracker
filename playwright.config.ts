@@ -13,7 +13,7 @@ export default defineConfig({
   webServer: {
     command: "npx next dev --hostname 127.0.0.1 --port 3100",
     env: {
-      PLAYNEXT_FORCE_DEMO: "true",
+      PLAYNIRA_FORCE_DEMO: "true",
     },
     url: "http://127.0.0.1:3100",
     reuseExistingServer: false,

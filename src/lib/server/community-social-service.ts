@@ -131,7 +131,7 @@ export async function toggleActivityReaction(
         actor: user,
         type: "reaction",
         title: "New activity reaction",
-        body: `${user.displayName ?? "A PlayNext player"} liked your ${target.gameTitle} activity.`,
+        body: `${user.displayName ?? "A Playnira player"} liked your ${target.gameTitle} activity.`,
         linkHref: target.linkHref,
         metadata: { activityId: input.activityId },
       });
@@ -181,7 +181,7 @@ export async function addActivityComment(
       actor: user,
       type: "comment",
       title: "New activity comment",
-      body: `${user.displayName ?? "A PlayNext player"} commented on your ${target.gameTitle} activity.`,
+      body: `${user.displayName ?? "A Playnira player"} commented on your ${target.gameTitle} activity.`,
       linkHref: target.linkHref,
       metadata: { activityId: input.activityId, commentId: comment.id },
     });

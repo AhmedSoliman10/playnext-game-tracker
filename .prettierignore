@@ -1,6 +1,6 @@
 .next
 node_modules
-.playnext-data
+.playnira-data
 test-results
 playwright-report
 coverage

@@ -72,14 +72,14 @@ test("landing page stays within basic performance budgets", async ({
 test("critical game tracking journey works with keyboard-accessible discovery", async ({
   page,
 }) => {
-  const email = `demo-${Date.now()}@playnext.local`;
+  const email = `demo-${Date.now()}@playnira.local`;
 
   await page.goto("/login");
   const emailInput = page.getByLabel("Email");
-  await expect(emailInput).toHaveValue("demo@playnext.local");
+  await expect(emailInput).toHaveValue("demo@playnira.local");
   await emailInput.fill(email);
   await expect(emailInput).toHaveValue(email);
-  await page.getByLabel("Password").fill("playnext-demo");
+  await page.getByLabel("Password").fill("playnira-demo");
   await page.getByRole("button", { name: "Sign in" }).click();
   await expect(page).toHaveURL(/\/dashboard/);
 
@@ -193,13 +193,13 @@ test("rating dialog opens inside a mobile viewport after marking played", async 
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  const email = `mobile-${Date.now()}@playnext.local`;
+  const email = `mobile-${Date.now()}@playnira.local`;
 
   await page.goto("/login");
   const emailInput = page.getByLabel("Email");
   await emailInput.clear();
   await emailInput.fill(email);
-  await page.getByLabel("Password").fill("playnext-demo");
+  await page.getByLabel("Password").fill("playnira-demo");
   await page.getByRole("button", { name: "Sign in" }).click();
   await expect(page).toHaveURL(/\/dashboard/);
 
@@ -226,13 +226,13 @@ test("rating dialog opens inside a mobile viewport after marking played", async 
 test("community hub renders the social feed after sign-in", async ({
   page,
 }) => {
-  const email = `community-${Date.now()}@playnext.local`;
+  const email = `community-${Date.now()}@playnira.local`;
 
   await page.goto("/login");
   const emailInput = page.getByLabel("Email");
   await emailInput.clear();
   await emailInput.fill(email);
-  await page.getByLabel("Password").fill("playnext-demo");
+  await page.getByLabel("Password").fill("playnira-demo");
   await page.getByRole("button", { name: "Sign in" }).click();
   await expect(page).toHaveURL(/\/dashboard/);
 
