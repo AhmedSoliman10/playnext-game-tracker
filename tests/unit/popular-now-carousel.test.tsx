@@ -50,15 +50,20 @@ describe("PopularNowCarousel", () => {
     render(<PopularNowCarousel games={games} />);
 
     const rail = screen.getByTestId("popular-carousel-rail") as HTMLDivElement;
-    Object.defineProperty(rail, "scrollWidth", {
+    const track = screen.getByTestId(
+      "popular-carousel-track",
+    ) as HTMLDivElement;
+    const firstGroup = screen.getByTestId(
+      "popular-carousel-primary-group",
+    ) as HTMLDivElement;
+    Object.defineProperty(firstGroup, "scrollWidth", {
       configurable: true,
-      value: 3000,
+      value: 1200,
     });
     Object.defineProperty(rail, "clientWidth", {
       configurable: true,
       value: 800,
     });
-    rail.scrollLeft = 0;
 
     act(() => {
       animationFrames[0]?.(0);
@@ -67,6 +72,6 @@ describe("PopularNowCarousel", () => {
       animationFrames[1]?.(1000);
     });
 
-    expect(rail.scrollLeft).toBeGreaterThan(0);
+    expect(track.style.transform).toContain("translate3d(-92px");
   });
 });

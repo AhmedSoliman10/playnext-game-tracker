@@ -4,11 +4,15 @@ import Link from "next/link";
 import type React from "react";
 import { useMemo, useRef, useState } from "react";
 import {
+  ArrowDown,
+  ArrowLeft,
   ArrowRight,
+  ArrowUp,
   Check,
   Clock,
   EyeOff,
   Heart,
+  Loader2,
   PauseCircle,
   Plus,
   RotateCcw,
@@ -17,7 +21,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { GameArtwork } from "@/components/games/game-artwork";
-import { RatingDialog } from "@/components/games/rating-dialog";
+import {
+  RatingDialog,
+  type RatingRecommendationChoice,
+} from "@/components/games/rating-dialog";
 import type { GameSummary } from "@/lib/games/types";
 import {
   STATUS_PROMPTS,
@@ -40,16 +47,50 @@ const actionIcons: Record<
 
 const swipeToStatus = {
   right: "played",
-  left: "not_interested",
+  left: "skipped",
   up: "want_to_play",
-  down: "skipped",
+  down: "playing",
 } as const satisfies Record<string, GameStatus>;
 
 interface PostRatingResult {
   ratedGame: GameSummary;
   message: string;
-  recommendation?: GameSummary;
+  recommendations: RatingRecommendationChoice[];
 }
+
+type SwipeDirection = keyof typeof swipeToStatus;
+
+const swipeHints: Array<{
+  direction: SwipeDirection;
+  label: string;
+  Icon: React.ComponentType<{ className?: string }>;
+  className: string;
+}> = [
+  {
+    direction: "right",
+    label: "Right: played",
+    Icon: ArrowRight,
+    className: "border-lime-300/40 bg-lime-300/10 text-lime-100",
+  },
+  {
+    direction: "up",
+    label: "Up: backlog",
+    Icon: ArrowUp,
+    className: "border-cyan-300/40 bg-cyan-300/10 text-cyan-100",
+  },
+  {
+    direction: "left",
+    label: "Left: skip",
+    Icon: ArrowLeft,
+    className: "border-zinc-500 bg-zinc-800/80 text-zinc-200",
+  },
+  {
+    direction: "down",
+    label: "Down: playing",
+    Icon: ArrowDown,
+    className: "border-amber-300/40 bg-amber-300/10 text-amber-100",
+  },
+];
 
 export function DiscoveryClient({
   games,
@@ -106,10 +147,15 @@ export function DiscoveryClient({
     });
   }
 
-  function queueRecommendation(game: GameSummary) {
+  function queueRecommendations(games: GameSummary[]) {
+    if (!games.length) {
+      return;
+    }
+
     setCandidateGames((current) => {
+      const recommendationSlugs = new Set(games.map((game) => game.slug));
       const withoutRecommendation = current.filter(
-        (candidate) => candidate.slug !== game.slug,
+        (candidate) => !recommendationSlugs.has(candidate.slug),
       );
       const insertionIndex = Math.min(
         currentIndex,
@@ -118,10 +164,24 @@ export function DiscoveryClient({
 
       return [
         ...withoutRecommendation.slice(0, insertionIndex),
-        game,
+        ...games,
         ...withoutRecommendation.slice(insertionIndex),
       ];
     });
+  }
+
+  function chooseRecommendation(
+    selectedGame: GameSummary,
+    choices: RatingRecommendationChoice[],
+  ) {
+    queueRecommendations([
+      selectedGame,
+      ...choices
+        .map((choice) => choice.game)
+        .filter((game) => game.slug !== selectedGame.slug),
+    ]);
+    setPostRatingResult(null);
+    setMessage(null);
   }
 
   async function updateStatus(status: GameStatus) {
@@ -265,9 +325,9 @@ export function DiscoveryClient({
 
     const keyMap: Partial<Record<string, GameStatus>> = {
       ArrowRight: "played",
-      ArrowLeft: "not_interested",
+      ArrowLeft: "skipped",
       ArrowUp: "want_to_play",
-      ArrowDown: "skipped",
+      ArrowDown: "playing",
     };
     const status = keyMap[event.key];
     if (status) {
@@ -300,6 +360,7 @@ export function DiscoveryClient({
   }
 
   const transform = `translate(${drag.x}px, ${drag.y}px) rotate(${drag.x / 28}deg)`;
+  const activeSwipeDirection = getActiveSwipeDirection(drag);
 
   return (
     <section className="mx-auto max-w-6xl">
@@ -334,6 +395,8 @@ export function DiscoveryClient({
         </p>
       ) : null}
 
+      <SwipeHints activeDirection={activeSwipeDirection} />
+
       <article
         tabIndex={0}
         onKeyDown={onKeyDown}
@@ -341,11 +404,14 @@ export function DiscoveryClient({
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
         onPointerCancel={() => setDrag({ active: false, x: 0, y: 0 })}
-        aria-label={`${displayedGame.title}. Swipe or use arrow keys to answer. Buttons are below.`}
+        aria-label={`${displayedGame.title}. Swipe right for played, up for backlog, left to skip, or down for currently playing. Buttons are below.`}
         data-testid="discovery-card"
-        className="grid touch-pan-y gap-5 rounded-lg border bg-panel-strong p-4 shadow-xl transition-transform focus-visible:outline-2 lg:grid-cols-[minmax(280px,420px)_1fr]"
+        className="relative grid touch-none gap-5 rounded-lg border bg-panel-strong p-4 shadow-xl transition-transform focus-visible:outline-2 lg:grid-cols-[minmax(280px,420px)_1fr]"
         style={{ transform }}
       >
+        {activeSwipeDirection ? (
+          <SwipePreview direction={activeSwipeDirection} />
+        ) : null}
         <div className="space-y-3">
           <GameArtwork
             src={displayedGame.coverImageUrl}
@@ -404,13 +470,14 @@ export function DiscoveryClient({
           </div>
 
           {postRatingResult ? (
-            <PostRatingPanel
-              result={postRatingResult}
-              onContinue={() => {
-                setPostRatingResult(null);
-                setMessage(null);
-              }}
-            />
+            <div className="mt-auto rounded-lg border border-lime-300/30 bg-lime-300/10 p-4">
+              <p className="text-sm font-semibold uppercase text-lime-200">
+                Rating saved
+              </p>
+              <p className="mt-2 text-base leading-6 text-zinc-100">
+                {postRatingResult.message}
+              </p>
+            </div>
           ) : (
             <div className="mt-auto grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
               {(Object.keys(STATUS_PROMPTS) as GameStatus[]).map((status) => {
@@ -429,7 +496,11 @@ export function DiscoveryClient({
                     onClick={() => updateStatus(status)}
                     disabled={busyStatus !== null}
                   >
-                    <Icon className="h-4 w-4" />
+                    {busyStatus === status ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Icon className="h-4 w-4" />
+                    )}
                     {STATUS_PROMPTS[status]}
                   </Button>
                 );
@@ -445,6 +516,19 @@ export function DiscoveryClient({
         </div>
       </article>
 
+      {postRatingResult ? (
+        <PostRatingPanel
+          result={postRatingResult}
+          onChoose={(game) =>
+            chooseRecommendation(game, postRatingResult.recommendations)
+          }
+          onContinue={() => {
+            setPostRatingResult(null);
+            setMessage(null);
+          }}
+        />
+      ) : null}
+
       {ratingGame ? (
         <RatingDialog
           key={ratingGame.slug}
@@ -456,16 +540,17 @@ export function DiscoveryClient({
               setRatingGame(null);
             }
           }}
-          onSaved={(entry, savedMessage, recommendation) => {
+          onSaved={(entry, savedMessage, recommendations) => {
             rememberEntry(entry);
-            if (recommendation) {
-              queueRecommendation(recommendation);
-            }
+            queueRecommendations(
+              recommendations?.map((recommendation) => recommendation.game) ??
+                [],
+            );
             setMessage(null);
             setPostRatingResult({
               ratedGame: ratingGame,
               message: savedMessage,
-              recommendation,
+              recommendations: recommendations ?? [],
             });
           }}
         />
@@ -476,53 +561,139 @@ export function DiscoveryClient({
 
 function PostRatingPanel({
   result,
+  onChoose,
   onContinue,
 }: {
   result: PostRatingResult;
+  onChoose: (game: GameSummary) => void;
   onContinue: () => void;
 }) {
   return (
     <div
       role="status"
-      className="mt-auto space-y-4 rounded-lg border border-lime-300/30 bg-lime-300/10 p-4"
+      className="mt-5 space-y-4 rounded-lg border border-lime-300/30 bg-lime-300/10 p-4"
     >
       <div>
         <p className="text-sm font-semibold uppercase text-lime-200">
-          PlayNext recommendation
+          Choose what comes next
         </p>
         <p className="mt-2 text-base leading-6 text-zinc-100">
-          {result.message}
+          Pick a recommendation to bring it to the front of discovery, or keep
+          going with the first suggestion.
         </p>
       </div>
 
-      {result.recommendation ? (
-        <Link
-          href={`/games/${result.recommendation.slug}`}
-          className="grid gap-3 rounded-md border border-zinc-700 bg-zinc-950/80 p-3 transition hover:border-lime-300 focus-visible:outline-2 sm:grid-cols-[88px_1fr]"
-        >
-          <GameArtwork
-            src={result.recommendation.coverImageUrl}
-            alt={`${result.recommendation.title} cover artwork`}
-            className="aspect-[2/3] w-24 sm:w-full"
-          />
-          <span className="flex min-w-0 flex-col gap-1">
-            <span className="text-lg font-bold text-zinc-50">
-              {result.recommendation.title}
-            </span>
-            <span className="line-clamp-2 text-sm text-zinc-400">
-              {result.recommendation.description}
-            </span>
-            <span className="mt-1 text-sm font-semibold text-lime-200">
-              View recommendation
-            </span>
-          </span>
-        </Link>
+      {result.recommendations.length ? (
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          {result.recommendations.map((choice) => (
+            <article
+              key={choice.game.slug}
+              className="flex min-w-0 flex-col overflow-hidden rounded-lg border border-zinc-700 bg-zinc-950/80"
+            >
+              <GameArtwork
+                src={choice.game.coverImageUrl}
+                alt={`${choice.game.title} cover artwork`}
+                className="aspect-[2/3] w-full rounded-none"
+              />
+              <div className="flex flex-1 flex-col gap-3 p-3">
+                <div className="min-w-0">
+                  <h3 className="line-clamp-2 text-base font-bold text-zinc-50">
+                    {choice.game.title}
+                  </h3>
+                  <p className="mt-1 line-clamp-2 text-sm text-zinc-400">
+                    {choice.reason ?? choice.game.description}
+                  </p>
+                </div>
+                <div className="mt-auto grid grid-cols-2 gap-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={() => onChoose(choice.game)}
+                  >
+                    Pick
+                  </Button>
+                  <Button asChild size="sm" variant="secondary">
+                    <Link href={`/games/${choice.game.slug}`}>Details</Link>
+                  </Button>
+                </div>
+              </div>
+            </article>
+          ))}
+        </div>
       ) : null}
 
       <Button type="button" onClick={onContinue}>
-        {result.recommendation ? "Show recommendation" : "Show next game"}{" "}
+        {result.recommendations.length
+          ? "Show recommendation"
+          : "Show next game"}{" "}
         <ArrowRight className="h-4 w-4" />
       </Button>
+    </div>
+  );
+}
+
+function getActiveSwipeDirection(drag: {
+  active: boolean;
+  x: number;
+  y: number;
+}) {
+  if (!drag.active) {
+    return null;
+  }
+
+  const absX = Math.abs(drag.x);
+  const absY = Math.abs(drag.y);
+  if (Math.max(absX, absY) < 28) {
+    return null;
+  }
+
+  if (absX > absY) {
+    return drag.x > 0 ? "right" : "left";
+  }
+
+  return drag.y < 0 ? "up" : "down";
+}
+
+function SwipeHints({
+  activeDirection,
+}: {
+  activeDirection: SwipeDirection | null;
+}) {
+  return (
+    <div className="mb-4 grid grid-cols-2 gap-2 text-xs font-bold sm:grid-cols-4">
+      {swipeHints.map(({ direction, label, Icon, className }) => (
+        <div
+          key={direction}
+          className={`flex items-center justify-center gap-2 rounded-md border px-3 py-2 transition ${
+            activeDirection === direction
+              ? `${className} scale-[1.02]`
+              : "border-zinc-700 bg-zinc-950/70 text-zinc-400"
+          }`}
+        >
+          <Icon className="h-4 w-4" />
+          {label}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function SwipePreview({ direction }: { direction: SwipeDirection }) {
+  const hint = swipeHints.find((item) => item.direction === direction);
+  if (!hint) {
+    return null;
+  }
+
+  const Icon = hint.Icon;
+  return (
+    <div
+      aria-hidden
+      className={`pointer-events-none absolute left-1/2 top-4 z-10 -translate-x-1/2 rounded-full border px-4 py-2 text-sm font-black shadow-xl backdrop-blur ${hint.className}`}
+    >
+      <span className="flex items-center gap-2">
+        <Icon className="h-4 w-4" />
+        {STATUS_PROMPTS[swipeToStatus[direction]]}
+      </span>
     </div>
   );
 }

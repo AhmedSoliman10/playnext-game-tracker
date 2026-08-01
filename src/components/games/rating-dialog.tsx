@@ -88,6 +88,11 @@ type CategoryRatingKey =
   | "soundtrackRating"
   | "difficultyRating";
 
+export interface RatingRecommendationChoice {
+  game: GameSummary;
+  reason?: string;
+}
+
 function RatingGrid({
   values,
   current,
@@ -181,7 +186,7 @@ export function RatingDialog({
   onSaved?: (
     entry: LibraryEntry,
     message: string,
-    recommendation?: GameSummary,
+    recommendations?: RatingRecommendationChoice[],
   ) => void;
 }) {
   const [stepIndex, setStepIndex] = useState(0);
@@ -311,11 +316,17 @@ export function RatingDialog({
         throw new Error(payload.error ?? "Could not save rating.");
       }
 
-      const source = await getFirstRecommendation(game.slug);
+      const recommendations = await getRatingRecommendations(game.slug);
+      const source = recommendations[0]?.game;
       onSaved?.(
         payload.entry,
-        recommendationMessage(game.title, payload.entry.rating, source),
-        source,
+        recommendationMessage(
+          game.title,
+          payload.entry.rating,
+          source,
+          recommendations.length,
+        ),
+        recommendations,
       );
       resetDialog();
       onOpenChange(false);
@@ -602,20 +613,28 @@ export function RatingDialog({
   );
 }
 
-async function getFirstRecommendation(currentGameSlug: string) {
+async function getRatingRecommendations(currentGameSlug: string) {
   try {
     const recommendationsResponse = await fetch("/api/recommendations");
     if (!recommendationsResponse.ok) {
-      return undefined;
+      return [];
     }
 
     const recommendationsPayload = (await recommendationsResponse.json()) as {
-      recommendations?: Array<{ game: GameSummary }>;
+      recommendations?: Array<{ game: GameSummary; reasons?: string[] }>;
     };
-    return recommendationsPayload.recommendations?.find(
-      (recommendation) => recommendation.game.slug !== currentGameSlug,
-    )?.game;
+    return (
+      recommendationsPayload.recommendations
+        ?.filter(
+          (recommendation) => recommendation.game.slug !== currentGameSlug,
+        )
+        .slice(0, 4)
+        .map((recommendation) => ({
+          game: recommendation.game,
+          reason: recommendation.reasons?.[0],
+        })) ?? []
+    );
   } catch {
-    return undefined;
+    return [];
   }
 }

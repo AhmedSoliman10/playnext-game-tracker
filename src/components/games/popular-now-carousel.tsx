@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight, Flame, Star } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -10,6 +10,8 @@ import type { GameSummary } from "@/lib/games/types";
 import { getReleaseYear } from "@/lib/utils";
 
 const AUTO_SCROLL_PX_PER_SECOND = 92;
+const WATCHDOG_INTERVAL_MS = 300;
+const WATCHDOG_STALL_MS = 450;
 
 export function PopularNowCarousel({
   games,
@@ -25,47 +27,62 @@ export function PopularNowCarousel({
   const firstGroupRef = useRef<HTMLDivElement>(null);
   const pausedRef = useRef(false);
   const frameRef = useRef<number | null>(null);
+  const watchdogRef = useRef<number | null>(null);
   const previousFrameTimeRef = useRef<number | null>(null);
+  const offsetRef = useRef(0);
+  const loopPointRef = useRef(0);
   const visibleGames = games.slice(0, 12);
   const shouldAutoScroll = visibleGames.length > 1;
 
-  function getLoopPoint(rail: HTMLDivElement) {
+  const measureLoopPoint = useCallback(() => {
     const firstGroup = firstGroupRef.current;
     const track = trackRef.current;
 
     if (!firstGroup || !track) {
-      return rail.scrollWidth / 2;
+      return 0;
     }
 
-    const gap = Number.parseFloat(window.getComputedStyle(track).columnGap);
-    return firstGroup.scrollWidth + (Number.isFinite(gap) ? gap : 0);
-  }
+    const styles = window.getComputedStyle(track);
+    const gap = Number.parseFloat(styles.columnGap || styles.gap);
+    const groupWidth =
+      firstGroup.getBoundingClientRect().width || firstGroup.scrollWidth;
+    const loopPoint = groupWidth + (Number.isFinite(gap) ? gap : 0);
+    loopPointRef.current = loopPoint;
+    return loopPoint;
+  }, []);
+
+  const applyOffset = useCallback(
+    (nextOffset: number) => {
+      const track = trackRef.current;
+      const loopPoint = loopPointRef.current || measureLoopPoint();
+      if (!track || loopPoint <= 0) {
+        return;
+      }
+
+      const normalizedOffset =
+        ((nextOffset % loopPoint) + loopPoint) % loopPoint;
+      offsetRef.current = normalizedOffset;
+      track.style.transform = `translate3d(${-normalizedOffset}px, 0, 0)`;
+    },
+    [measureLoopPoint],
+  );
+
+  const moveCarouselBy = useCallback(
+    (delta: number) => {
+      applyOffset(offsetRef.current + delta);
+    },
+    [applyOffset],
+  );
 
   function scrollRail(direction: 1 | -1) {
     const rail = railRef.current;
-    if (!rail) {
-      return;
-    }
-
-    const card = rail.querySelector<HTMLElement>("[data-carousel-card]");
-    const step = card ? card.offsetWidth + 16 : rail.clientWidth * 0.82;
-    const loopPoint = getLoopPoint(rail);
-    const atEnd = rail.scrollLeft + step >= loopPoint - 8;
-    const atStart = rail.scrollLeft <= 8;
-
-    if (direction === 1 && atEnd) {
-      rail.scrollLeft = Math.max(0, rail.scrollLeft - loopPoint);
-      rail.scrollBy({ left: step, behavior: "smooth" });
-      return;
-    }
-
-    if (direction === -1 && atStart) {
-      rail.scrollLeft = loopPoint;
-      rail.scrollBy({ left: -step, behavior: "smooth" });
-      return;
-    }
-
-    rail.scrollBy({ left: direction * step, behavior: "smooth" });
+    const card = trackRef.current?.querySelector<HTMLElement>(
+      "[data-carousel-card]",
+    );
+    const step = card
+      ? card.offsetWidth + 16
+      : (rail?.clientWidth ?? 320) * 0.82;
+    moveCarouselBy(direction * step);
   }
 
   useEffect(() => {
@@ -73,12 +90,39 @@ export function PopularNowCarousel({
       "(prefers-reduced-motion: reduce)",
     ).matches;
     const rail = railRef.current;
+    const track = trackRef.current;
 
-    if (reducedMotion || !rail || !shouldAutoScroll) {
+    if (!rail || !track || !shouldAutoScroll) {
       return;
     }
 
-    const railElement = rail;
+    function keepCurrentProgressAfterResize() {
+      const previousLoopPoint = loopPointRef.current;
+      const progress =
+        previousLoopPoint > 0 ? offsetRef.current / previousLoopPoint : 0;
+      const nextLoopPoint = measureLoopPoint();
+      applyOffset(progress * nextLoopPoint);
+    }
+
+    keepCurrentProgressAfterResize();
+
+    let resizeObserver: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== "undefined") {
+      resizeObserver = new ResizeObserver(keepCurrentProgressAfterResize);
+      resizeObserver.observe(rail);
+      if (firstGroupRef.current) {
+        resizeObserver.observe(firstGroupRef.current);
+      }
+    } else {
+      window.addEventListener("resize", keepCurrentProgressAfterResize);
+    }
+
+    if (reducedMotion) {
+      return () => {
+        resizeObserver?.disconnect();
+        window.removeEventListener("resize", keepCurrentProgressAfterResize);
+      };
+    }
 
     function tick(timestamp: number) {
       if (previousFrameTimeRef.current === null) {
@@ -90,28 +134,52 @@ export function PopularNowCarousel({
 
       if (
         !pausedRef.current &&
-        railElement.scrollWidth > railElement.clientWidth
+        (loopPointRef.current || measureLoopPoint()) > 0
       ) {
-        railElement.scrollLeft += (AUTO_SCROLL_PX_PER_SECOND * deltaMs) / 1000;
-
-        const loopPoint = getLoopPoint(railElement);
-        if (loopPoint > 0 && railElement.scrollLeft >= loopPoint) {
-          railElement.scrollLeft -= loopPoint;
-        }
+        moveCarouselBy((AUTO_SCROLL_PX_PER_SECOND * deltaMs) / 1000);
       }
 
       frameRef.current = window.requestAnimationFrame(tick);
     }
 
     frameRef.current = window.requestAnimationFrame(tick);
+    watchdogRef.current = window.setInterval(() => {
+      if (
+        document.visibilityState !== "visible" ||
+        pausedRef.current ||
+        previousFrameTimeRef.current === null
+      ) {
+        return;
+      }
+
+      const now = performance.now();
+      const stalledFor = now - previousFrameTimeRef.current;
+      if (stalledFor > WATCHDOG_STALL_MS) {
+        if ((loopPointRef.current || measureLoopPoint()) <= 0) {
+          return;
+        }
+
+        moveCarouselBy(
+          (AUTO_SCROLL_PX_PER_SECOND *
+            Math.min(stalledFor, WATCHDOG_STALL_MS)) /
+            1000,
+        );
+        previousFrameTimeRef.current = now;
+      }
+    }, WATCHDOG_INTERVAL_MS);
 
     return () => {
       if (frameRef.current !== null) {
         window.cancelAnimationFrame(frameRef.current);
       }
+      if (watchdogRef.current !== null) {
+        window.clearInterval(watchdogRef.current);
+      }
+      resizeObserver?.disconnect();
+      window.removeEventListener("resize", keepCurrentProgressAfterResize);
       previousFrameTimeRef.current = null;
     };
-  }, [shouldAutoScroll]);
+  }, [applyOffset, measureLoopPoint, moveCarouselBy, shouldAutoScroll]);
 
   if (!visibleGames.length) {
     return null;
@@ -209,7 +277,7 @@ export function PopularNowCarousel({
       <div
         ref={railRef}
         data-testid="popular-carousel-rail"
-        className="scrollbar-hidden -mx-4 overflow-hidden scroll-smooth px-4 pb-2 [mask-image:linear-gradient(90deg,transparent,black_4%,black_96%,transparent)] sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8"
+        className="scrollbar-hidden -mx-4 overflow-hidden px-4 pb-2 [mask-image:linear-gradient(90deg,transparent,black_4%,black_96%,transparent)] sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8"
         onFocusCapture={() => {
           pausedRef.current = true;
         }}
@@ -220,9 +288,13 @@ export function PopularNowCarousel({
         <div
           ref={trackRef}
           data-testid="popular-carousel-track"
-          className="flex w-max gap-4"
+          className="flex w-max gap-4 will-change-transform"
         >
-          <div ref={firstGroupRef} className="flex shrink-0 gap-4">
+          <div
+            ref={firstGroupRef}
+            data-testid="popular-carousel-primary-group"
+            className="flex shrink-0 gap-4"
+          >
             {visibleGames.map((game, index) => renderCard(game, index))}
           </div>
           {shouldAutoScroll ? (

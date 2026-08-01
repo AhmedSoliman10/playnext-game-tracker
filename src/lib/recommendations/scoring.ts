@@ -306,10 +306,18 @@ export function recommendationMessage(
   gameTitle: string,
   rating: Rating,
   source?: GameSummary,
+  recommendationCount = 1,
 ) {
-  const sourceClause = source
-    ? ` Because you enjoyed ${source.genres.slice(0, 2).join(" and ").toLowerCase()}, here is another game you may like.`
-    : " Here is another game you may like.";
+  const nextGameClause =
+    recommendationCount > 1
+      ? "here are a few games you may like."
+      : recommendationCount === 1
+        ? "here is another game you may like."
+        : "keep exploring and PlayNext will keep learning your taste.";
+  const sourceGenres = source?.genres.slice(0, 2).join(" and ").toLowerCase();
+  const sourceClause = sourceGenres
+    ? ` Because you enjoyed ${sourceGenres}, ${nextGameClause}`
+    : ` ${nextGameClause.charAt(0).toUpperCase()}${nextGameClause.slice(1)}`;
 
   return `You rated ${gameTitle} an ${rating.overallRating}/10.${sourceClause}`;
 }
