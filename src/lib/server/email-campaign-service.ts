@@ -91,6 +91,7 @@ function whatsNewBody(displayName: string, request?: Request) {
     <p style="margin:0 0 18px;">PlayNext just got a big upgrade. It is no longer only a place to track games; it is starting to feel like a tiny gaming community built around your taste.</p>
     <ul style="margin:0 0 18px;padding-left:20px;">
       <li><strong>Discord connect:</strong> link Discord from Settings and show it on your profile.</li>
+      <li><strong>Community hub:</strong> write posts, attach games, save posts, share links, and keep conversations going with comments.</li>
       <li><strong>Public profiles:</strong> browse libraries, ratings, reviews, shelves, and taste compatibility.</li>
       <li><strong>Community reactions and comments:</strong> respond to public activity without leaving PlayNext.</li>
       <li><strong>Custom shelves:</strong> make your own public or private game collections.</li>
@@ -110,6 +111,7 @@ PlayNext just got a big upgrade.
 
 New:
 - Discord connect from Settings
+- Community hub posts with game attachments, bookmarks, sharing, and comments
 - Public profiles with libraries, ratings, reviews, shelves, and taste compatibility
 - Community reactions and comments
 - Custom shelves
@@ -136,7 +138,7 @@ async function createWhatsNewNotifications(recipients: EmailRecipient[]) {
     recipient_user_id: recipient.userId,
     notification_type: "system" as const,
     title: "PlayNext just got social",
-    body: "Discord connect, public profiles, comments, shelves, Steam import, and smarter recommendation feedback are live.",
+    body: "Community posts, Discord connect, public profiles, shelves, Steam import, and smarter recommendation feedback are live.",
     link_href: "/dashboard",
     metadata: { campaign: "playnext-social-update-2026-08-01" },
     created_at: now,
@@ -184,11 +186,11 @@ export async function sendWhatsNewCampaign({
       await sendEmail({
         to: recipient.email,
         subject:
-          "PlayNext just got social: Discord, shelves, Steam import, and smarter picks",
+          "PlayNext just got social: posts, Discord, shelves, Steam import, and smarter picks",
         text: whatsNewText(recipient.displayName, request),
         html: emailLayout({
           preheader:
-            "Discord connect, public profiles, comments, shelves, Steam import, and smarter recommendations are live.",
+            "Community posts, Discord connect, public profiles, shelves, Steam import, and smarter recommendations are live.",
           title: "PlayNext just got a serious upgrade",
           body: whatsNewBody(recipient.displayName, request),
           ctaHref: appHref("/dashboard", request),
