@@ -37,6 +37,13 @@ test("popular carousel moves automatically on the landing page", async ({
       },
     )
     .toContain("popular-carousel-scroll");
+
+  await expect(
+    page.getByRole("heading", {
+      name: /See what players are saying before you choose tonight's game/i,
+    }),
+  ).toBeVisible();
+  await expect(page.getByText("Community pulse")).toBeVisible();
 });
 
 test("landing page stays within basic performance budgets", async ({

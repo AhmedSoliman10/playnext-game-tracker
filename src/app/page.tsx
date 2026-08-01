@@ -11,10 +11,12 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { PopularNowCarousel } from "@/components/games/popular-now-carousel";
+import { LandingCommunityHighlights } from "@/components/community/landing-community-highlights";
 import {
   getCachedGameBySlug,
   getCachedPopularGames,
 } from "@/lib/games/cached-provider";
+import { getLandingCommunityPostHighlights } from "@/lib/server/community-post-service";
 
 export const revalidate = 21600;
 
@@ -42,9 +44,10 @@ function formatRating(value?: number | null) {
 }
 
 export default async function Home() {
-  const [exampleGame, popularGames] = await Promise.all([
+  const [exampleGame, popularGames, communityPosts] = await Promise.all([
     getLandingExampleGame(),
     getCachedPopularGames({ pageSize: 8 }),
+    getLandingCommunityPostHighlights().catch(() => []),
   ]);
   const exampleTitle = exampleGame?.title ?? "Red Dead Redemption 2";
   const exampleCover =
@@ -146,6 +149,8 @@ export default async function Home() {
           description="A cinematic scroll of highly rated games to start exploring before Playnira learns your own taste."
         />
       </section>
+
+      <LandingCommunityHighlights posts={communityPosts} />
 
       <section className="mx-auto grid max-w-7xl gap-6 px-4 py-14 sm:px-6 md:grid-cols-3 lg:px-8">
         {[

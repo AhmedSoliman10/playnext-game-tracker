@@ -17,6 +17,7 @@ import type {
   CommunityPost,
   CommunityPostAuthor,
   CommunityPostComment,
+  CommunityPostMood,
   CommunityPostReactionType,
   UserContext,
 } from "@/lib/types";
@@ -38,6 +39,22 @@ type ReactionRow =
   Database["public"]["Tables"]["community_post_reactions"]["Row"];
 type CommentRow =
   Database["public"]["Tables"]["community_post_comments"]["Row"];
+
+export interface LandingCommunityPostHighlight {
+  id: string;
+  body: string;
+  mood: CommunityPostMood;
+  author: {
+    id: string;
+    displayName: string;
+    avatarUrl?: string | null;
+  };
+  game: GameSummary | null;
+  imageUrl?: string | null;
+  reactionTotal: number;
+  commentCount: number;
+  createdAt: string;
+}
 
 function isMissingCommunityPostsTable(error: { code?: string } | null) {
   return error?.code === "42P01" || error?.code === "42703";
@@ -460,6 +477,124 @@ export async function getCommunityPosts(
     followedUserIds,
     blockedUserIds,
   );
+}
+
+export async function getLandingCommunityPostHighlights(
+  limit = 3,
+): Promise<LandingCommunityPostHighlight[]> {
+  if (!isSupabaseConfigured()) {
+    return [];
+  }
+
+  const admin = createSupabaseAdminClient();
+  if (!admin) {
+    return [];
+  }
+
+  const { data, error } = await admin
+    .from("community_posts")
+    .select("*")
+    .eq("visibility", "public")
+    .order("created_at", { ascending: false })
+    .limit(Math.max(limit * 3, 9));
+
+  if (isMissingCommunityPostsTable(error)) {
+    return [];
+  }
+
+  if (error) {
+    throw new Error("Could not load public community posts.");
+  }
+
+  const rows = data ?? [];
+  if (!rows.length) {
+    return [];
+  }
+
+  const profilesById = await getProfiles(rows.map((row) => row.user_id));
+  const visibleRows = rows
+    .filter((row) => {
+      const profile = profilesById.get(row.user_id);
+      return Boolean(profile) && !profile?.is_private;
+    })
+    .slice(0, limit);
+
+  if (!visibleRows.length) {
+    return [];
+  }
+
+  const postIds = visibleRows.map((row) => row.id);
+  const gameIds = visibleRows
+    .map((row) => row.game_id)
+    .filter((id): id is string => Boolean(id));
+
+  const [gamesById, reactionsResult, commentsResult] = await Promise.all([
+    getGames(gameIds),
+    admin
+      .from("community_post_reactions")
+      .select("post_id, reaction")
+      .in("post_id", postIds),
+    admin
+      .from("community_post_comments")
+      .select("post_id")
+      .in("post_id", postIds),
+  ]);
+
+  if (
+    reactionsResult.error &&
+    !isMissingCommunityPostsTable(reactionsResult.error)
+  ) {
+    throw new Error("Could not load public post reactions.");
+  }
+
+  if (
+    commentsResult.error &&
+    !isMissingCommunityPostsTable(commentsResult.error)
+  ) {
+    throw new Error("Could not load public post comments.");
+  }
+
+  const reactionCountsByPostId = new Map<
+    string,
+    Record<CommunityPostReactionType, number>
+  >();
+  for (const reaction of reactionsResult.data ?? []) {
+    const current =
+      reactionCountsByPostId.get(reaction.post_id) ??
+      emptyCommunityReactionCounts();
+    current[reaction.reaction] += 1;
+    reactionCountsByPostId.set(reaction.post_id, current);
+  }
+
+  const commentCountsByPostId = new Map<string, number>();
+  for (const comment of commentsResult.data ?? []) {
+    commentCountsByPostId.set(
+      comment.post_id,
+      (commentCountsByPostId.get(comment.post_id) ?? 0) + 1,
+    );
+  }
+
+  return visibleRows.map((row) => {
+    const profile = profilesById.get(row.user_id)!;
+    const reactionCounts =
+      reactionCountsByPostId.get(row.id) ?? emptyCommunityReactionCounts();
+
+    return {
+      id: row.id,
+      body: row.body,
+      mood: row.mood,
+      author: {
+        id: profile.id,
+        displayName: profile.display_name ?? "Player",
+        avatarUrl: profile.avatar_url,
+      },
+      game: row.game_id ? (gamesById.get(row.game_id) ?? null) : null,
+      imageUrl: row.image_url,
+      reactionTotal: getCommunityReactionTotal(reactionCounts),
+      commentCount: commentCountsByPostId.get(row.id) ?? 0,
+      createdAt: row.created_at,
+    };
+  });
 }
 
 export async function getCommunityPostById(
