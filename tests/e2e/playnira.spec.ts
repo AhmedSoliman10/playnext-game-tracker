@@ -239,6 +239,7 @@ test("rating dialog opens inside a mobile viewport after marking played", async 
 test("community hub renders the social feed after sign-in", async ({
   page,
 }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
   const email = `community-${Date.now()}@playnira.local`;
 
   await page.goto("/login");
@@ -255,10 +256,21 @@ test("community hub renders the social feed after sign-in", async ({
       name: "Talk games with people who actually play them",
     }),
   ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Players to follow" }).first(),
+  ).toBeVisible();
   await expect(page.getByLabel("Create a post")).toBeVisible();
   await expect(page.getByRole("button", { name: "For you" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Game talk" })).toBeVisible();
   await expect(page.getByText(/weekend list/i)).toBeVisible();
+
+  const viewportWidth = await page.evaluate(
+    () => document.documentElement.clientWidth,
+  );
+  const pageWidth = await page.evaluate(
+    () => document.documentElement.scrollWidth,
+  );
+  expect(pageWidth).toBeLessThanOrEqual(viewportWidth);
 });
 
 function escapeRegExp(value: string) {

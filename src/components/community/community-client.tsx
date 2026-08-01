@@ -690,12 +690,12 @@ export function CommunityClient({
   }
 
   return (
-    <section className="space-y-6">
-      <div className="overflow-hidden rounded-xl border bg-[radial-gradient(circle_at_top_left,rgba(53,208,127,0.16),transparent_34%),linear-gradient(135deg,#15191d,#232b33)] p-5 shadow-sm sm:p-6">
+    <section className="-mx-4 space-y-4 sm:mx-0 sm:space-y-6">
+      <div className="overflow-hidden border-y bg-[radial-gradient(circle_at_top_left,rgba(53,208,127,0.16),transparent_34%),linear-gradient(135deg,#15191d,#232b33)] px-4 py-5 shadow-sm sm:rounded-xl sm:border sm:p-6">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-          <div>
+          <div className="min-w-0">
             <p className="text-sm font-medium text-cyan-200">Community Hub</p>
-            <h1 className="mt-1 text-3xl font-bold tracking-normal sm:text-4xl">
+            <h1 className="mt-1 text-2xl font-black leading-tight tracking-normal text-zinc-50 sm:text-4xl">
               Talk games with people who actually play them
             </h1>
             <p className="mt-3 max-w-3xl text-sm leading-6 text-zinc-300 sm:text-base">
@@ -703,7 +703,7 @@ export function CommunityClient({
               react to other players, and follow people whose taste you trust.
             </p>
           </div>
-          <div className="grid grid-cols-2 gap-2 text-sm sm:grid-cols-4 lg:min-w-[420px]">
+          <div className="grid grid-cols-4 gap-2 text-sm lg:min-w-[420px]">
             <CommunityStat label="Posts" value={liveStats.postCount} />
             <CommunityStat
               label="Following"
@@ -740,186 +740,197 @@ export function CommunityClient({
         </p>
       ) : null}
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
-        <main className="space-y-4">
-          <article className="rounded-xl border bg-panel p-4 sm:p-5">
-            <div className="flex gap-3">
-              <CommunityAvatar
-                src={currentProfile?.avatarUrl}
-                name={currentProfile?.displayName ?? "Your profile"}
-                className="h-12 w-12"
-              />
-              <div className="min-w-0 flex-1">
+      <MobilePeopleStrip
+        profiles={items}
+        busyId={busyId}
+        onFollow={toggleFollow}
+      />
+
+      <div className="grid min-w-0 gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
+        <main className="min-w-0 space-y-3 sm:space-y-4">
+          <article className="overflow-hidden border-y bg-panel sm:rounded-xl sm:border">
+            <div className="p-4 sm:p-5">
+              <div className="flex gap-3">
+                <CommunityAvatar
+                  src={currentProfile?.avatarUrl}
+                  name={currentProfile?.displayName ?? "Your profile"}
+                  className="h-10 w-10 sm:h-12 sm:w-12"
+                />
+                <div className="min-w-0 flex-1">
+                  <label
+                    htmlFor="community-post-body"
+                    className="text-sm font-semibold"
+                  >
+                    Create a post
+                  </label>
+                  <textarea
+                    id="community-post-body"
+                    value={body}
+                    onChange={(event) => setBody(event.target.value)}
+                    maxLength={1200}
+                    placeholder="What's on your mind about games?"
+                    className="mt-2 min-h-24 w-full resize-none rounded-xl border bg-zinc-950 px-3 py-3 text-sm leading-6 outline-none transition focus:border-cyan-300 sm:min-h-28 sm:resize-y"
+                  />
+                </div>
+              </div>
+
+              <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                <label className="block text-sm font-semibold">
+                  Mood
+                  <select
+                    value={mood}
+                    onChange={(event) =>
+                      setMood(event.target.value as CommunityPostMood)
+                    }
+                    className="mt-2 h-10 w-full rounded-md border bg-zinc-950 px-3 text-sm outline-none focus:border-cyan-300"
+                  >
+                    {COMMUNITY_POST_MOODS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="block text-sm font-semibold">
+                  Visibility
+                  <select
+                    value={visibility}
+                    onChange={(event) =>
+                      setVisibility(
+                        event.target.value as CommunityPostVisibility,
+                      )
+                    }
+                    className="mt-2 h-10 w-full rounded-md border bg-zinc-950 px-3 text-sm outline-none focus:border-cyan-300"
+                  >
+                    {COMMUNITY_POST_VISIBILITIES.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="block text-sm font-semibold">
+                  Optional image URL
+                  <input
+                    value={imageUrl}
+                    onChange={(event) => setImageUrl(event.target.value)}
+                    placeholder="https://..."
+                    className="mt-2 h-10 w-full rounded-md border bg-zinc-950 px-3 text-sm outline-none focus:border-cyan-300"
+                  />
+                </label>
+              </div>
+
+              <div className="mt-4 rounded-lg border bg-zinc-950/35 p-3">
                 <label
-                  htmlFor="community-post-body"
+                  htmlFor="community-game-search"
                   className="text-sm font-semibold"
                 >
-                  Create a post
+                  Attach a game
                 </label>
-                <textarea
-                  id="community-post-body"
-                  value={body}
-                  onChange={(event) => setBody(event.target.value)}
-                  maxLength={1200}
-                  placeholder="Ask for a recommendation, share a review thought, or tell people what you are playing..."
-                  className="mt-2 min-h-28 w-full resize-y rounded-lg border bg-zinc-950 px-3 py-3 text-sm leading-6 outline-none transition focus:border-cyan-300"
-                />
-              </div>
-            </div>
-
-            <div className="mt-4 grid gap-3 md:grid-cols-3">
-              <label className="block text-sm font-semibold">
-                Mood
-                <select
-                  value={mood}
-                  onChange={(event) =>
-                    setMood(event.target.value as CommunityPostMood)
-                  }
-                  className="mt-2 h-10 w-full rounded-md border bg-zinc-950 px-3 text-sm outline-none focus:border-cyan-300"
-                >
-                  {COMMUNITY_POST_MOODS.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="block text-sm font-semibold">
-                Visibility
-                <select
-                  value={visibility}
-                  onChange={(event) =>
-                    setVisibility(event.target.value as CommunityPostVisibility)
-                  }
-                  className="mt-2 h-10 w-full rounded-md border bg-zinc-950 px-3 text-sm outline-none focus:border-cyan-300"
-                >
-                  {COMMUNITY_POST_VISIBILITIES.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="block text-sm font-semibold">
-                Optional image URL
-                <input
-                  value={imageUrl}
-                  onChange={(event) => setImageUrl(event.target.value)}
-                  placeholder="https://..."
-                  className="mt-2 h-10 w-full rounded-md border bg-zinc-950 px-3 text-sm outline-none focus:border-cyan-300"
-                />
-              </label>
-            </div>
-
-            <div className="mt-4 rounded-lg border bg-zinc-950/35 p-3">
-              <label
-                htmlFor="community-game-search"
-                className="text-sm font-semibold"
-              >
-                Attach a game
-              </label>
-              {selectedGame ? (
-                <div className="mt-3 flex items-center gap-3 rounded-lg border bg-zinc-950 p-2">
-                  <GameArtwork
-                    src={selectedGame.coverImageUrl}
-                    alt={`${selectedGame.title} cover`}
-                    className="h-16 w-12 shrink-0 rounded-sm"
-                  />
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate font-semibold">
-                      {selectedGame.title}
-                    </p>
-                    <p className="truncate text-xs text-zinc-400">
-                      {selectedGame.genres.slice(0, 2).join(", ") ||
-                        "Game attachment"}
-                    </p>
-                  </div>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => {
-                      setSelectedGame(null);
-                      setGameQuery("");
-                    }}
-                    aria-label={`Remove ${selectedGame.title} attachment`}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-              ) : (
-                <div className="relative mt-2">
-                  <Search
-                    className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-zinc-500"
-                    aria-hidden
-                  />
-                  <input
-                    id="community-game-search"
-                    value={gameQuery}
-                    onChange={(event) => setGameQuery(event.target.value)}
-                    placeholder="Search a game to attach..."
-                    className="h-10 w-full rounded-md border bg-zinc-950 pl-9 pr-3 text-sm outline-none focus:border-cyan-300"
-                  />
-                  {isSearchingGames ? (
-                    <Loader2 className="absolute right-3 top-3 h-4 w-4 animate-spin text-zinc-400" />
-                  ) : null}
-                </div>
-              )}
-
-              {!selectedGame &&
-              gameQuery.trim().length >= 2 &&
-              gameResults.length ? (
-                <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                  {gameResults.map((game) => (
-                    <button
-                      key={game.slug}
+                {selectedGame ? (
+                  <div className="mt-3 flex items-center gap-3 rounded-lg border bg-zinc-950 p-2">
+                    <GameArtwork
+                      src={selectedGame.coverImageUrl}
+                      alt={`${selectedGame.title} cover`}
+                      className="h-16 w-12 shrink-0 rounded-sm"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-semibold">
+                        {selectedGame.title}
+                      </p>
+                      <p className="truncate text-xs text-zinc-400">
+                        {selectedGame.genres.slice(0, 2).join(", ") ||
+                          "Game attachment"}
+                      </p>
+                    </div>
+                    <Button
                       type="button"
+                      variant="ghost"
+                      size="icon"
                       onClick={() => {
-                        setSelectedGame(game);
-                        setGameQuery(game.title);
+                        setSelectedGame(null);
+                        setGameQuery("");
                       }}
-                      className="flex min-w-0 items-center gap-2 rounded-md border bg-zinc-950 p-2 text-left transition hover:border-cyan-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-300"
+                      aria-label={`Remove ${selectedGame.title} attachment`}
                     >
-                      <GameArtwork
-                        src={game.coverImageUrl}
-                        alt={`${game.title} cover`}
-                        className="h-12 w-9 shrink-0 rounded-sm"
-                      />
-                      <span className="min-w-0">
-                        <span className="block truncate text-sm font-semibold">
-                          {game.title}
-                        </span>
-                        <span className="block truncate text-xs text-zinc-500">
-                          {game.releaseDate?.slice(0, 4) ?? "Unknown year"}
-                        </span>
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              ) : null}
-            </div>
-
-            <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-xs text-zinc-500">
-                {1200 - body.length} characters left
-              </p>
-              <Button
-                type="button"
-                disabled={!body.trim() || postBusyId === "create-post"}
-                onClick={publishPost}
-              >
-                {postBusyId === "create-post" ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
                 ) : (
-                  <Send className="h-4 w-4" />
+                  <div className="relative mt-2">
+                    <Search
+                      className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-zinc-500"
+                      aria-hidden
+                    />
+                    <input
+                      id="community-game-search"
+                      value={gameQuery}
+                      onChange={(event) => setGameQuery(event.target.value)}
+                      placeholder="Search a game to attach..."
+                      className="h-11 w-full rounded-md border bg-zinc-950 pl-9 pr-3 text-sm outline-none focus:border-cyan-300"
+                    />
+                    {isSearchingGames ? (
+                      <Loader2 className="absolute right-3 top-3 h-4 w-4 animate-spin text-zinc-400" />
+                    ) : null}
+                  </div>
                 )}
-                Publish post
-              </Button>
+
+                {!selectedGame &&
+                gameQuery.trim().length >= 2 &&
+                gameResults.length ? (
+                  <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                    {gameResults.map((game) => (
+                      <button
+                        key={game.slug}
+                        type="button"
+                        onClick={() => {
+                          setSelectedGame(game);
+                          setGameQuery(game.title);
+                        }}
+                        className="flex min-w-0 items-center gap-2 rounded-md border bg-zinc-950 p-2 text-left transition hover:border-cyan-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-300"
+                      >
+                        <GameArtwork
+                          src={game.coverImageUrl}
+                          alt={`${game.title} cover`}
+                          className="h-12 w-9 shrink-0 rounded-sm"
+                        />
+                        <span className="min-w-0">
+                          <span className="block truncate text-sm font-semibold">
+                            {game.title}
+                          </span>
+                          <span className="block truncate text-xs text-zinc-500">
+                            {game.releaseDate?.slice(0, 4) ?? "Unknown year"}
+                          </span>
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+
+              <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-xs text-zinc-500">
+                  {1200 - body.length} characters left
+                </p>
+                <Button
+                  type="button"
+                  disabled={!body.trim() || postBusyId === "create-post"}
+                  onClick={publishPost}
+                  className="w-full sm:w-auto"
+                >
+                  {postBusyId === "create-post" ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Send className="h-4 w-4" />
+                  )}
+                  Publish post
+                </Button>
+              </div>
             </div>
           </article>
 
-          <div className="overflow-x-auto pb-1">
-            <div className="flex min-w-max gap-2">
+          <div className="sticky top-16 z-20 border-y bg-background/95 px-4 py-2 backdrop-blur sm:static sm:border-0 sm:bg-transparent sm:p-0">
+            <div className="scrollbar-hidden flex min-w-0 gap-2 overflow-x-auto pb-1">
               <FeedTab
                 active={feedMode === "for-you"}
                 label="For you"
@@ -982,7 +993,7 @@ export function CommunityClient({
           )}
         </main>
 
-        <aside className="space-y-4 xl:sticky xl:top-24 xl:self-start">
+        <aside className="hidden space-y-4 xl:sticky xl:top-24 xl:block xl:self-start">
           <section className="rounded-xl border bg-panel p-4">
             <div className="flex items-center justify-between gap-3">
               <h2 className="text-lg font-bold">Players to follow</h2>
@@ -1225,6 +1236,75 @@ export function CommunityClient({
   );
 }
 
+function MobilePeopleStrip({
+  profiles,
+  busyId,
+  onFollow,
+}: {
+  profiles: PublicProfile[];
+  busyId: string | null;
+  onFollow: (profile: PublicProfile) => void;
+}) {
+  if (!profiles.length) {
+    return null;
+  }
+
+  return (
+    <section className="xl:hidden">
+      <div className="mb-2 flex items-center justify-between px-4">
+        <h2 className="text-sm font-bold text-zinc-100">Players to follow</h2>
+        <Link href="/search" className="text-xs font-semibold text-cyan-200">
+          Find games
+        </Link>
+      </div>
+      <div className="scrollbar-hidden flex gap-3 overflow-x-auto px-4 pb-1">
+        {profiles.slice(0, 8).map((profile) => (
+          <article
+            key={profile.id}
+            className="w-36 shrink-0 rounded-xl border bg-panel p-3 text-center"
+          >
+            <CommunityAvatar
+              src={profile.avatarUrl}
+              name={profile.displayName}
+              className="mx-auto h-14 w-14"
+            />
+            <Link
+              href={`/players/${profile.id}`}
+              className="mt-3 block truncate text-sm font-bold hover:text-cyan-200"
+            >
+              {profile.displayName}
+            </Link>
+            <p className="mt-1 text-xs text-zinc-500">
+              {profile.followersCount} followers
+            </p>
+            <Button
+              type="button"
+              variant={profile.isFollowing ? "secondary" : "default"}
+              size="sm"
+              disabled={profile.isCurrentUser || busyId === profile.id}
+              onClick={() => onFollow(profile)}
+              className="mt-3 w-full px-2"
+            >
+              {busyId === profile.id ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : profile.isFollowing ? (
+                <UserRoundCheck className="h-4 w-4" />
+              ) : (
+                <UserPlus className="h-4 w-4" />
+              )}
+              {profile.isCurrentUser
+                ? "You"
+                : profile.isFollowing
+                  ? "Following"
+                  : "Follow"}
+            </Button>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function PostCard({
   post,
   busyId,
@@ -1251,36 +1331,34 @@ function PostCard({
   return (
     <article
       id={`post-${post.id}`}
-      className="rounded-xl border bg-panel p-4 transition duration-200 hover:border-cyan-300/60 sm:p-5"
+      className="border-y bg-panel p-4 transition duration-200 hover:border-cyan-300/60 sm:rounded-xl sm:border sm:p-5"
     >
-      <header className="flex items-start gap-3">
+      <header className="flex min-w-0 items-start gap-3">
         <CommunityAvatar
           src={post.author.avatarUrl}
           name={post.author.displayName}
-          className="h-12 w-12"
+          className="h-10 w-10 sm:h-12 sm:w-12"
         />
         <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex min-w-0 items-center gap-2">
             <Link
               href={`/players/${post.author.id}`}
-              className="font-semibold hover:text-cyan-200"
+              className="min-w-0 truncate font-semibold hover:text-cyan-200"
             >
               {post.author.displayName}
             </Link>
-            <span className="rounded-full border px-2 py-0.5 text-xs text-cyan-100">
+            <span className="shrink-0 rounded-full border border-cyan-300/30 bg-cyan-300/10 px-2 py-0.5 text-xs text-cyan-100">
               {moodLabel(post.mood)}
             </span>
-            <span className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs text-zinc-400">
-              {post.visibility === "public" ? (
-                <Globe2 className="h-3 w-3" />
-              ) : (
-                <Users className="h-3 w-3" />
-              )}
-              {post.visibility === "public" ? "Public" : "Followers"}
-            </span>
           </div>
-          <p className="mt-1 text-xs text-zinc-500">
-            {formatCompactDate(post.createdAt)}
+          <p className="mt-1 flex items-center gap-1 text-xs text-zinc-500">
+            <span>{formatCompactDate(post.createdAt)}</span>
+            <span aria-hidden>·</span>
+            {post.visibility === "public" ? (
+              <Globe2 className="h-3 w-3" aria-label="Public post" />
+            ) : (
+              <Users className="h-3 w-3" aria-label="Followers-only post" />
+            )}
           </p>
         </div>
         {post.author.isCurrentUser ? (
@@ -1308,19 +1386,21 @@ function PostCard({
       {post.game ? (
         <Link
           href={`/games/${post.game.slug}`}
-          className="mt-4 grid gap-3 rounded-lg border bg-zinc-950/45 p-3 transition hover:border-cyan-300 sm:grid-cols-[84px_1fr]"
+          className="mt-4 grid grid-cols-[72px_minmax(0,1fr)] gap-3 rounded-xl border bg-zinc-950/45 p-3 transition hover:border-cyan-300 sm:grid-cols-[84px_1fr]"
         >
           <GameArtwork
             src={post.game.coverImageUrl}
             alt={`${post.game.title} cover`}
-            className="h-28 w-20 rounded-sm sm:h-32"
+            className="h-24 w-[72px] rounded-md sm:h-32 sm:w-20"
           />
           <span className="min-w-0">
-            <span className="block text-lg font-bold">{post.game.title}</span>
+            <span className="block truncate text-base font-bold sm:text-lg">
+              {post.game.title}
+            </span>
             <span className="mt-1 line-clamp-2 block text-sm leading-6 text-zinc-400">
               {post.game.description}
             </span>
-            <span className="mt-3 flex flex-wrap gap-2">
+            <span className="mt-3 flex min-w-0 flex-wrap gap-2">
               {post.game.genres.slice(0, 3).map((genre) => (
                 <span
                   key={genre}
@@ -1351,14 +1431,16 @@ function PostCard({
         </div>
       ) : null}
 
-      <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t pt-3 text-xs text-zinc-400">
-        <span>
+      <div className="mt-4 flex items-center justify-between gap-2 border-t pt-3 text-xs text-zinc-400">
+        <span className="min-w-0 truncate">
           {post.reactionTotal} reactions · {post.commentCount} comments
         </span>
-        <span>{post.viewerBookmarked ? "Saved to bookmarks" : ""}</span>
+        {post.viewerBookmarked ? (
+          <span className="shrink-0 text-cyan-200">Saved</span>
+        ) : null}
       </div>
 
-      <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+      <div className="mt-2 grid grid-cols-4 gap-1.5 border-y py-2 sm:gap-2">
         {COMMUNITY_POST_REACTIONS.map((reaction) => {
           const pressed = post.viewerReaction === reaction.type;
           const reactionBusy =
@@ -1367,12 +1449,13 @@ function PostCard({
             <Button
               key={reaction.type}
               type="button"
-              variant={pressed ? "default" : "outline"}
+              variant={pressed ? "default" : "ghost"}
               size="sm"
               disabled={reactionBusy}
               onClick={() => onReact(reaction.type)}
               aria-pressed={pressed}
               title={`${reaction.label}: ${post.reactionCounts[reaction.type]}`}
+              className="min-w-0 px-1 text-[11px] sm:px-3 sm:text-xs"
             >
               {reactionBusy ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -1390,7 +1473,7 @@ function PostCard({
                 />
               )}
               {reaction.label}
-              <span className="text-xs opacity-80">
+              <span className="text-[10px] opacity-80 sm:text-xs">
                 {post.reactionCounts[reaction.type]}
               </span>
             </Button>
@@ -1398,7 +1481,7 @@ function PostCard({
         })}
       </div>
 
-      <div className="mt-3 flex flex-wrap gap-2">
+      <div className="mt-2 grid grid-cols-3 gap-1.5 sm:flex sm:flex-wrap sm:gap-2">
         <Button
           type="button"
           variant={post.viewerBookmarked ? "secondary" : "ghost"}
@@ -1406,6 +1489,7 @@ function PostCard({
           disabled={busyId === `bookmark:${post.id}`}
           onClick={onBookmark}
           aria-pressed={post.viewerBookmarked}
+          className="px-2"
         >
           {busyId === `bookmark:${post.id}` ? (
             <Loader2 className="h-4 w-4 animate-spin" />
@@ -1418,7 +1502,13 @@ function PostCard({
           )}
           {post.viewerBookmarked ? "Saved" : "Save"}
         </Button>
-        <Button type="button" variant="ghost" size="sm" onClick={onShare}>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={onShare}
+          className="px-2"
+        >
           <Clipboard className="h-4 w-4" />
           Share
         </Button>
@@ -1428,6 +1518,7 @@ function PostCard({
           size="sm"
           disabled={busyId === `report:${post.id}`}
           onClick={onReport}
+          className="px-2"
         >
           {busyId === `report:${post.id}` ? (
             <Loader2 className="h-4 w-4 animate-spin" />
@@ -1469,7 +1560,7 @@ function PostCard({
       ) : null}
 
       <form
-        className="mt-4 flex gap-2"
+        className="mt-4 flex items-center gap-2"
         onSubmit={(event) => {
           event.preventDefault();
           onComment();
@@ -1484,7 +1575,7 @@ function PostCard({
           onChange={(event) => onCommentTextChange(event.target.value)}
           maxLength={500}
           placeholder="Write a comment..."
-          className="h-10 min-w-0 flex-1 rounded-md border bg-zinc-950 px-3 text-sm outline-none focus:border-cyan-300"
+          className="h-11 min-w-0 flex-1 rounded-full border bg-zinc-950 px-4 text-sm outline-none focus:border-cyan-300"
         />
         <Button
           type="submit"
@@ -1518,7 +1609,7 @@ function FeedTab({
     <button
       type="button"
       onClick={onClick}
-      className={`inline-flex h-10 items-center gap-2 rounded-md border px-4 text-sm font-semibold transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-300 ${
+      className={`inline-flex h-10 shrink-0 items-center gap-2 rounded-full border px-4 text-sm font-semibold transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-300 ${
         active
           ? "border-cyan-300 bg-cyan-300 text-zinc-950"
           : "bg-panel text-zinc-200 hover:border-cyan-300"
@@ -1533,9 +1624,11 @@ function FeedTab({
 
 function CommunityStat({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-lg border bg-zinc-950/35 p-3">
-      <p className="text-2xl font-bold">{value}</p>
-      <p className="mt-1 text-xs text-zinc-400">{label}</p>
+    <div className="min-w-0 rounded-lg border bg-zinc-950/35 p-2 sm:p-3">
+      <p className="text-xl font-bold sm:text-2xl">{value}</p>
+      <p className="mt-1 truncate text-[11px] leading-tight text-zinc-400 sm:text-xs">
+        {label}
+      </p>
     </div>
   );
 }
