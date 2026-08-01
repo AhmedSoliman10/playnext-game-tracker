@@ -155,6 +155,40 @@ test("critical game tracking journey works with keyboard-accessible discovery", 
   await expect(page.getByText(hiddenTitle)).toHaveCount(0);
 });
 
+test("rating dialog opens inside a mobile viewport after marking played", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const email = `mobile-${Date.now()}@playnext.local`;
+
+  await page.goto("/login");
+  const emailInput = page.getByLabel("Email");
+  await emailInput.clear();
+  await emailInput.fill(email);
+  await page.getByLabel("Password").fill("playnext-demo");
+  await page.getByRole("button", { name: "Sign in" }).click();
+  await expect(page).toHaveURL(/\/dashboard/);
+
+  await page.goto("/discover");
+  const firstGameTitle = await page
+    .locator("[data-testid='discovery-card'] h2")
+    .first()
+    .innerText();
+  await page.getByRole("button", { name: "Yes, I played it" }).click();
+
+  const dialog = page.getByRole("dialog");
+  await expect(dialog).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: `Rate ${firstGameTitle}` }),
+  ).toBeVisible();
+  await expect(page.getByRole("button", { name: "Yes" })).toBeVisible();
+
+  const dialogBox = await dialog.boundingBox();
+  expect(dialogBox).not.toBeNull();
+  expect(dialogBox!.y).toBeGreaterThanOrEqual(0);
+  expect(dialogBox!.height).toBeLessThanOrEqual(844);
+});
+
 function escapeRegExp(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }

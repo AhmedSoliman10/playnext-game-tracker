@@ -456,8 +456,8 @@ export function RatingDialog({
         onOpenChange(nextOpen);
       }}
     >
-      <DialogContent className="max-w-3xl overflow-hidden p-0">
-        <div className="grid md:grid-cols-[190px_1fr]">
+      <DialogContent className="max-h-[calc(100dvh-1rem)] max-w-3xl overflow-y-auto p-0">
+        <div className="grid min-h-0 md:grid-cols-[190px_1fr]">
           <div className="hidden border-r bg-zinc-950 md:block">
             <GameArtwork
               src={game.coverImageUrl}
@@ -465,7 +465,7 @@ export function RatingDialog({
               className="h-full min-h-[520px] w-full rounded-none"
             />
           </div>
-          <div className="p-5 sm:p-6">
+          <div className="min-h-0 p-4 sm:p-6">
             <div className="flex gap-4 pr-10 md:block md:pr-0">
               <GameArtwork
                 src={game.coverImageUrl}
@@ -473,7 +473,7 @@ export function RatingDialog({
                 className="h-24 w-16 shrink-0 md:hidden"
               />
               <div className="min-w-0">
-                <DialogTitle className="line-clamp-2 text-2xl font-bold">
+                <DialogTitle className="line-clamp-2 text-xl font-bold sm:text-2xl">
                   Rate {game.title}
                 </DialogTitle>
                 <DialogDescription className="mt-2 text-sm text-zinc-400">
@@ -533,7 +533,7 @@ export function RatingDialog({
 
             <form
               onSubmit={form.handleSubmit(submit)}
-              className="mt-5 space-y-5"
+              className="mt-5 space-y-4"
             >
               <div className="rounded-lg border bg-zinc-950/80 p-4">
                 <div className="mb-4 flex items-start justify-between gap-3">
@@ -561,7 +561,7 @@ export function RatingDialog({
                   {form.formState.errors.overallRating.message}
                 </p>
               ) : null}
-              <div className="flex flex-col-reverse justify-between gap-3 sm:flex-row">
+              <div className="sticky -bottom-4 -mx-4 flex flex-col-reverse justify-between gap-3 border-t bg-panel-strong/95 px-4 py-3 backdrop-blur sm:static sm:mx-0 sm:flex-row sm:border-t-0 sm:bg-transparent sm:px-0 sm:py-0 sm:backdrop-blur-none">
                 <Button
                   type="button"
                   variant="secondary"
