@@ -1,30 +1,45 @@
 import { searchCachedGames } from "@/lib/games/cached-provider";
 import { updateUserGameStatus } from "@/lib/server/library-service";
+import {
+  parseSteamProfileInput,
+  type SteamProfileInput,
+} from "@/lib/steam/profile";
 import type { UserContext } from "@/lib/types";
 import type { SteamLibraryImportInput } from "@/lib/validation/library-import";
 
-const STEAM_IMPORT_LIMIT = 25;
-const STEAM_TIMEOUT_MS = 8_000;
+const STEAM_IMPORT_LIMIT = 100;
+const STEAM_TIMEOUT_MS = 12_000;
 
 interface SteamGame {
   appId: string;
   name: string;
+  playtimeMinutes?: number;
 }
 
-function parseSteamProfile(input: string) {
-  const trimmed = input.trim();
-  const urlMatch = trimmed.match(
-    /steamcommunity\.com\/(id|profiles)\/([^/?#]+)/i,
-  );
-  if (urlMatch) {
-    return { kind: urlMatch[1].toLowerCase(), value: urlMatch[2] };
-  }
+interface SteamOwnedGamesResponse {
+  response?: {
+    games?: Array<{
+      appid?: number;
+      name?: string;
+      playtime_forever?: number;
+    }>;
+  };
+}
 
-  if (/^\d{15,20}$/.test(trimmed)) {
-    return { kind: "profiles", value: trimmed };
-  }
+interface SteamVanityResponse {
+  response?: {
+    success?: number;
+    steamid?: string;
+    message?: string;
+  };
+}
 
-  return { kind: "id", value: trimmed.replace(/^@/, "") };
+function normalizeTitle(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim()
+    .replace(/\s+/g, " ");
 }
 
 function decodeXml(value: string) {
@@ -61,13 +76,90 @@ function parseSteamGames(xml: string): SteamGame[] {
   return games;
 }
 
+async function fetchJson<T>(url: string): Promise<T> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), STEAM_TIMEOUT_MS);
+
+  try {
+    const response = await fetch(url, {
+      signal: controller.signal,
+      headers: {
+        "user-agent": "PlayNext game tracker import",
+      },
+    });
+    if (!response.ok) {
+      throw new Error("Steam did not return a readable response.");
+    }
+    return (await response.json()) as T;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function resolveSteamId(profile: SteamProfileInput) {
+  if (profile.kind === "profiles") {
+    return profile.value;
+  }
+
+  const apiKey = process.env.STEAM_API_KEY;
+  if (!apiKey) {
+    throw new Error(
+      "Steam vanity URLs need STEAM_API_KEY. Add a Steam Web API key or paste your SteamID64.",
+    );
+  }
+
+  const params = new URLSearchParams({
+    key: apiKey,
+    vanityurl: profile.value,
+  });
+  const data = await fetchJson<SteamVanityResponse>(
+    `https://api.steampowered.com/ISteamUser/ResolveVanityURL/v0001/?${params.toString()}`,
+  );
+  const steamId = data.response?.steamid;
+  if (data.response?.success !== 1 || !steamId) {
+    throw new Error(
+      data.response?.message ||
+        "Steam could not resolve that custom profile URL.",
+    );
+  }
+
+  return steamId;
+}
+
+async function fetchOwnedGamesWithApi(profile: SteamProfileInput) {
+  const apiKey = process.env.STEAM_API_KEY;
+  if (!apiKey) {
+    return null;
+  }
+
+  const steamId = await resolveSteamId(profile);
+  const params = new URLSearchParams({
+    key: apiKey,
+    steamid: steamId,
+    include_appinfo: "true",
+    include_played_free_games: "true",
+    format: "json",
+  });
+  const data = await fetchJson<SteamOwnedGamesResponse>(
+    `https://api.steampowered.com/IPlayerService/GetOwnedGames/v0001/?${params.toString()}`,
+  );
+
+  return (data.response?.games ?? [])
+    .filter((game) => game.appid && game.name)
+    .map((game) => ({
+      appId: String(game.appid),
+      name: game.name!,
+      playtimeMinutes: game.playtime_forever ?? 0,
+    }));
+}
+
 async function fetchPublicSteamLibrary(profile: string) {
-  const { kind, value } = parseSteamProfile(profile);
+  const { kind, value } = parseSteamProfileInput(profile);
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), STEAM_TIMEOUT_MS);
   const url = `https://steamcommunity.com/${kind}/${encodeURIComponent(
     value,
-  )}/games?tab=all&xml=1`;
+  )}/games/?tab=all&xml=1`;
 
   try {
     const response = await fetch(url, {
@@ -81,18 +173,50 @@ async function fetchPublicSteamLibrary(profile: string) {
         "Steam did not return a public library for that profile.",
       );
     }
-    return response.text();
+    const body = await response.text();
+    if (!body.includes("<gamesList") && !body.includes("<game>")) {
+      throw new Error(
+        "Steam's public games page did not expose XML. Add STEAM_API_KEY for reliable imports.",
+      );
+    }
+    return body;
   } finally {
     clearTimeout(timeout);
   }
+}
+
+async function fetchSteamGames(profile: string) {
+  const parsedProfile = parseSteamProfileInput(profile);
+  const apiGames = await fetchOwnedGamesWithApi(parsedProfile);
+  if (apiGames) {
+    return apiGames;
+  }
+
+  const xml = await fetchPublicSteamLibrary(profile);
+  return parseSteamGames(xml);
+}
+
+async function findCatalogMatch(steamGame: SteamGame) {
+  const searchResult = await searchCachedGames(steamGame.name, {
+    pageSize: 5,
+  });
+  const normalizedSteamTitle = normalizeTitle(steamGame.name);
+
+  return (
+    searchResult.games.find(
+      (candidate) => normalizeTitle(candidate.title) === normalizedSteamTitle,
+    ) ?? searchResult.games[0]
+  );
 }
 
 export async function importSteamLibrary(
   user: UserContext,
   input: SteamLibraryImportInput,
 ) {
-  const xml = await fetchPublicSteamLibrary(input.profile);
-  const steamGames = parseSteamGames(xml).slice(0, STEAM_IMPORT_LIMIT);
+  const steamGames = (await fetchSteamGames(input.profile)).slice(
+    0,
+    STEAM_IMPORT_LIMIT,
+  );
   if (!steamGames.length) {
     throw new Error(
       "No public Steam games were found. Check that the profile and game details are public.",
@@ -107,10 +231,7 @@ export async function importSteamLibrary(
 
   for (const steamGame of steamGames) {
     try {
-      const searchResult = await searchCachedGames(steamGame.name, {
-        pageSize: 1,
-      });
-      const match = searchResult.games[0];
+      const match = await findCatalogMatch(steamGame);
       if (!match) {
         result.skipped += 1;
         result.errors.push(`No catalog match for ${steamGame.name}.`);

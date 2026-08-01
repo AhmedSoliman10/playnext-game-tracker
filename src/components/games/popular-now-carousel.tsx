@@ -38,7 +38,7 @@ export function PopularNowCarousel({
     return null;
   }
 
-  function renderCard(game: GameSummary, index: number, duplicate = false) {
+  function renderCard(game: GameSummary, duplicate = false) {
     return (
       <Link
         key={`${duplicate ? "duplicate" : "primary"}-${game.slug}`}
@@ -51,7 +51,6 @@ export function PopularNowCarousel({
         <GameArtwork
           src={game.backgroundImageUrl ?? game.coverImageUrl}
           alt={`${game.title} artwork`}
-          priority={!duplicate && index < 2}
           className="absolute inset-0 h-full w-full rounded-none opacity-70 transition duration-300 group-hover:scale-105 group-hover:opacity-90"
         />
         <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(9,9,11,0.08),rgba(9,9,11,0.72)_54%,rgba(9,9,11,0.98))]" />
@@ -141,11 +140,11 @@ export function PopularNowCarousel({
             data-testid="popular-carousel-primary-group"
             className="flex shrink-0 gap-4"
           >
-            {visibleGames.map((game, index) => renderCard(game, index))}
+            {visibleGames.map((game) => renderCard(game))}
           </div>
           {shouldAutoScroll ? (
             <div className="flex shrink-0 gap-4" aria-hidden>
-              {visibleGames.map((game, index) => renderCard(game, index, true))}
+              {visibleGames.map((game) => renderCard(game, true))}
             </div>
           ) : null}
         </div>

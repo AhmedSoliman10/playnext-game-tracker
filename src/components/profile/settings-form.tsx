@@ -26,6 +26,7 @@ export function SettingsForm({
   avatarUrl,
   isPrivate,
   discord,
+  discordError,
   notificationPreferences,
   demoMode,
 }: {
@@ -33,6 +34,7 @@ export function SettingsForm({
   avatarUrl?: string | null;
   isPrivate: boolean;
   discord?: DiscordProfile | null;
+  discordError?: string | null;
   notificationPreferences: NotificationPreferences;
   demoMode: boolean;
 }) {
@@ -377,12 +379,22 @@ export function SettingsForm({
               </div>
             </div>
           ) : (
-            <Button asChild className="mt-4 w-full" variant="secondary">
-              <a href="/api/auth/discord/link">
-                <MessageCircle className="h-4 w-4" />
-                Connect Discord
-              </a>
-            </Button>
+            <>
+              {discordError ? (
+                <p
+                  role="alert"
+                  className="mt-4 rounded-md border border-rose-400/40 bg-rose-400/10 px-3 py-2 text-sm text-rose-100"
+                >
+                  {discordError}
+                </p>
+              ) : null}
+              <Button asChild className="mt-4 w-full" variant="secondary">
+                <a href="/api/auth/discord/link">
+                  <MessageCircle className="h-4 w-4" />
+                  Connect Discord
+                </a>
+              </Button>
+            </>
           )}
         </div>
 
@@ -513,7 +525,8 @@ export function SettingsForm({
             />
             <p className="mt-2 text-xs text-zinc-500">
               Steam games import into Backlog after matching titles in the
-              catalog. Your Steam profile and game details must be public.
+              catalog. Your Steam profile and game details must be public;
+              production imports use the server-only Steam Web API key.
             </p>
             {steamMessage ? (
               <p role="status" className="mt-3 text-sm text-lime-200">

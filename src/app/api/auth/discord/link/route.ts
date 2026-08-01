@@ -36,18 +36,28 @@ export async function GET(request: NextRequest) {
   const supabase = createSupabaseRouteClient(request, fallbackResponse);
   const { data: userData } = await supabase!.auth.getUser();
   if (!userData.user) {
-    return settingsErrorRedirect(request, "signed-out");
+    const response = settingsErrorRedirect(request, "signed-out");
+    copyCookies(fallbackResponse, response);
+    return response;
   }
 
   const { data, error } = await supabase!.auth.linkIdentity({
     provider: "discord",
     options: {
+      scopes: "identify email",
       redirectTo: getAuthCallbackUrl(request, "/settings"),
     },
   });
 
   if (error || !data.url) {
-    return fallbackResponse;
+    const reason =
+      error?.message.toLowerCase().includes("already") ||
+      error?.message.toLowerCase().includes("exists")
+        ? "already-linked"
+        : "discord";
+    const response = settingsErrorRedirect(request, reason);
+    copyCookies(fallbackResponse, response);
+    return response;
   }
 
   const redirectResponse = NextResponse.redirect(data.url);

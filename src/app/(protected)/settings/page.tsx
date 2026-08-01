@@ -12,7 +12,43 @@ export const metadata = {
   title: "Settings",
 };
 
-export default async function SettingsPage() {
+function firstParam(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] : value;
+}
+
+function discordErrorMessage(reason?: string) {
+  if (reason === "signed-out") {
+    return "Sign in again, then connect Discord from Settings.";
+  }
+
+  if (reason === "already-linked") {
+    return "That Discord account is already connected to another PlayNext account. Sign in with that Discord account first, or use a different Discord account.";
+  }
+
+  if (reason === "missing-code") {
+    return "Discord did not return a valid authorization code. Please try connecting again.";
+  }
+
+  if (reason === "discord") {
+    return "Discord could not be connected. Check the Supabase Discord provider setup and try again.";
+  }
+
+  if (reason === "supabase") {
+    return "Supabase authentication is not configured for this deployment.";
+  }
+
+  return null;
+}
+
+export default async function SettingsPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const rawSearchParams = await searchParams;
+  const discordError = discordErrorMessage(
+    firstParam(rawSearchParams.discord_error),
+  );
   const user = await getCurrentUser();
   let avatarUrl: string | null = null;
   let displayName = user?.displayName ?? "Player";
@@ -64,6 +100,7 @@ export default async function SettingsPage() {
       avatarUrl={avatarUrl}
       isPrivate={isPrivate}
       discord={discord}
+      discordError={discordError}
       notificationPreferences={notificationPreferences}
       demoMode={!isSupabaseConfigured() || Boolean(user?.isDemo)}
     />

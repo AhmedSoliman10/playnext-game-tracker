@@ -26,7 +26,7 @@ export const DEFAULT_NOTIFICATION_PREFERENCES: NotificationPreferences = {
   inAppReaction: true,
   inAppComment: true,
   inAppSystem: true,
-  emailDigestEnabled: false,
+  emailDigestEnabled: true,
   quietModeEnabled: false,
 };
 

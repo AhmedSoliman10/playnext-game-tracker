@@ -262,6 +262,7 @@ export interface Database {
           link_href?: string | null;
           read_at?: string | null;
           metadata?: Json;
+          created_at?: string;
           updated_at?: string;
         };
         Update: {

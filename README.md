@@ -78,10 +78,20 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
 IGDB_CLIENT_ID=
 IGDB_CLIENT_SECRET=
+STEAM_API_KEY=
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_SECURE=false
+SMTP_USER=
+SMTP_PASSWORD=
+SMTP_FROM="PlayNext <playnext.app.mail@gmail.com>"
+ADMIN_EMAILS=
+ADMIN_USER_IDS=
+CRON_SECRET=
 NEXT_PUBLIC_APP_URL=http://localhost:8000
 ```
 
-Never expose `SUPABASE_SERVICE_ROLE_KEY` or `IGDB_CLIENT_SECRET` to browser code. They are only used server-side.
+Never expose `SUPABASE_SERVICE_ROLE_KEY`, `IGDB_CLIENT_SECRET`, `STEAM_API_KEY`, `SMTP_PASSWORD`, or `CRON_SECRET` to browser code. They are only used server-side.
 
 ## Supabase Setup
 
@@ -123,6 +133,17 @@ For Gmail SMTP:
 
 Gmail is fine for early testing, but a transactional provider such as Resend, Postmark, SendGrid, or AWS SES is a better long-term production choice.
 
+PlayNext also sends product-update and weekly-digest email from the app itself. Add the same mailbox or a transactional provider to these deployment variables:
+
+- `SMTP_HOST`
+- `SMTP_PORT`
+- `SMTP_SECURE`
+- `SMTP_USER`
+- `SMTP_PASSWORD`
+- `SMTP_FROM`
+
+Set `ADMIN_EMAILS` to a comma-separated allowlist of PlayNext admin emails that may trigger product emails. Set `CRON_SECRET` to a long random value; Vercel Cron uses it to call the weekly digest route.
+
 ## Discord OAuth Setup
 
 The app includes a Discord sign-in button and an account-linking flow for users who created their account before Discord was enabled. Supabase still needs the Discord provider credentials.
@@ -161,6 +182,7 @@ Newer migrations should be applied in timestamp order. The community/profile con
 - `supabase/migrations/202607230001_profiles_community_auth_controls.sql`
 - `supabase/migrations/202607230002_profile_privacy_and_display_name_strictness.sql`
 - `supabase/migrations/202608010001_social_feedback_profile_features.sql`
+- `supabase/migrations/202608010002_weekly_digest_defaults.sql`
 
 With Supabase CLI:
 
@@ -200,7 +222,33 @@ Provider order is IGDB, then the seeded catalog. If credentials are missing or I
 
 ## Library Import And Export
 
-From `/settings`, signed-in users can export their library as CSV, import that CSV again, or import a public Steam library by Steam profile URL, custom ID, or SteamID64. The Steam importer does not need a Steam API key; it reads public profile game data and matches titles against the PlayNext catalog. Imported Steam games are added to Backlog instead of Played because Steam public library data does not reliably mean a game was completed.
+From `/settings`, signed-in users can export their library as CSV, import that CSV again, or import a public Steam library by Steam profile URL, custom ID, or SteamID64. Imported Steam games are added to Backlog instead of Played because Steam public library data does not reliably mean a game was completed.
+
+For reliable production Steam imports, set `STEAM_API_KEY`. Steam's older public XML library endpoint may return a login page even for public profiles, so PlayNext uses the official Steam Web API whenever the key exists. Vanity URLs also require `STEAM_API_KEY`; SteamID64 imports can be attempted without resolving a vanity name, but the official API is still recommended.
+
+## Product Email And Weekly Digest
+
+PlayNext includes two server-only email flows:
+
+- `POST /api/admin/email/whats-new` sends a product-update email to signed-in users and creates an in-app system notification.
+- `GET /api/cron/weekly-digest` sends weekly digest email to users with the digest preference enabled.
+
+Both routes require production secrets. Product email requires the signed-in user to match `ADMIN_EMAILS` or `ADMIN_USER_IDS`. Weekly digest requires `Authorization: Bearer $CRON_SECRET`; `vercel.json` schedules it for Monday at 12:00 UTC.
+
+Dry-run a product email:
+
+```bash
+curl -X POST https://your-domain.example/api/admin/email/whats-new \
+  -H "Content-Type: application/json" \
+  -d '{"dryRun":true}'
+```
+
+Trigger a weekly digest manually:
+
+```bash
+curl https://your-domain.example/api/cron/weekly-digest \
+  -H "Authorization: Bearer your-cron-secret"
+```
 
 ## Commands
 
@@ -244,7 +292,7 @@ https://playnext-game-tracker.vercel.app
 - Community tables use RLS, block-aware reads, and ownership checks for reactions, comments, reports, shelves, and recommendation feedback.
 - Global game metadata is readable to authenticated users but has no browser insert/update/delete policies.
 - Server-side mutation routes include simple in-memory rate limiting.
-- `SUPABASE_SERVICE_ROLE_KEY` and `IGDB_CLIENT_SECRET` are never used in client components.
+- `SUPABASE_SERVICE_ROLE_KEY`, `IGDB_CLIENT_SECRET`, `STEAM_API_KEY`, SMTP credentials, and `CRON_SECRET` are never used in client components.
 
 ## Testing
 
@@ -297,8 +345,8 @@ Good first areas:
 - Discord OAuth needs provider credentials enabled in Supabase before it can complete sign-in.
 - Recommendation templates are deterministic and do not call an AI API.
 - Live IGDB metadata sync needs `SUPABASE_SERVICE_ROLE_KEY` if games are not already seeded in Supabase.
-- Steam import depends on public Steam profile visibility and title matching.
-- Notification digest preferences are stored, but a scheduled email digest sender is not implemented yet.
+- Steam import depends on public Steam profile visibility, `STEAM_API_KEY`, and title matching.
+- Weekly digest email requires SMTP env vars and `CRON_SECRET` in production.
 - Reports are stored for moderation, but the first admin review console is still a future phase.
 
 ## License

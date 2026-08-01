@@ -44,7 +44,7 @@ function formatRating(value?: number | null) {
 export default async function Home() {
   const [exampleGame, popularGames] = await Promise.all([
     getLandingExampleGame(),
-    getCachedPopularGames({ pageSize: 12 }),
+    getCachedPopularGames({ pageSize: 8 }),
   ]);
   const exampleTitle = exampleGame?.title ?? "Red Dead Redemption 2";
   const exampleCover =
@@ -67,7 +67,6 @@ export default async function Home() {
           src={exampleBackground}
           alt=""
           fill
-          priority
           sizes="100vw"
           aria-hidden
           className="object-cover opacity-35"
@@ -110,7 +109,7 @@ export default async function Home() {
                 alt={`Example PlayNext game card cover for ${exampleTitle}`}
                 width={600}
                 height={900}
-                priority
+                loading="eager"
                 sizes="384px"
                 className="aspect-[3/4] rounded-md object-cover"
               />
