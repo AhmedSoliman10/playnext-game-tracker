@@ -4,6 +4,7 @@ import { GameCard } from "@/components/games/game-card";
 import { GameArtwork } from "@/components/games/game-artwork";
 import { PopularNowCarousel } from "@/components/games/popular-now-carousel";
 import { RatingDetails } from "@/components/ratings/rating-details";
+import { RecommendationFeedbackControls } from "@/components/recommendations/recommendation-feedback-controls";
 import { BarList } from "@/components/charts/bar-list";
 import { StatCard } from "@/components/profile/stat-card";
 import { Button } from "@/components/ui/button";
@@ -15,6 +16,7 @@ import {
 } from "@/lib/recommendations/scoring";
 import { getCurrentUser } from "@/lib/server/current-user";
 import { getLibraryEntries } from "@/lib/server/library-service";
+import { getRecommendationFeedback } from "@/lib/server/recommendation-feedback-service";
 import { calculateUserStats } from "@/lib/stats/stats";
 
 export const metadata = {
@@ -24,9 +26,10 @@ export const metadata = {
 export default async function DashboardPage() {
   const user = await getCurrentUser();
   const entries = user ? await getLibraryEntries(user) : [];
+  const feedback = user ? await getRecommendationFeedback(user) : [];
   const stats = calculateUserStats(entries);
   const games = await getCachedPopularGames({ pageSize: 30 });
-  const recommendations = getRecommendations(games, entries, 4);
+  const recommendations = getRecommendations(games, entries, 4, feedback);
   const entriesByGameKey = new Map<string, (typeof entries)[number]>();
   for (const entry of entries) {
     for (const key of getGameIdentityKeys(entry.game)) {
@@ -100,6 +103,10 @@ export default async function DashboardPage() {
                   <p className="rounded-md border bg-zinc-950 px-3 py-2 text-sm text-zinc-300">
                     {recommendation.reasons[0]}
                   </p>
+                  <RecommendationFeedbackControls
+                    gameSlug={recommendation.game.slug}
+                    platform={recommendation.game.platforms[0]}
+                  />
                 </div>
               ))}
             </div>

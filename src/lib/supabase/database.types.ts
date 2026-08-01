@@ -16,6 +16,10 @@ export interface Database {
           display_name_normalized: string | null;
           display_name_changed_at: string;
           avatar_url: string | null;
+          discord_user_id: string | null;
+          discord_username: string | null;
+          discord_avatar_url: string | null;
+          discord_connected_at: string | null;
           is_private: boolean;
           created_at: string;
           updated_at: string;
@@ -26,6 +30,10 @@ export interface Database {
           display_name_normalized?: string | null;
           display_name_changed_at?: string;
           avatar_url?: string | null;
+          discord_user_id?: string | null;
+          discord_username?: string | null;
+          discord_avatar_url?: string | null;
+          discord_connected_at?: string | null;
           is_private?: boolean;
           created_at?: string;
           updated_at?: string;
@@ -35,6 +43,10 @@ export interface Database {
           display_name_normalized?: string | null;
           display_name_changed_at?: string;
           avatar_url?: string | null;
+          discord_user_id?: string | null;
+          discord_username?: string | null;
+          discord_avatar_url?: string | null;
+          discord_connected_at?: string | null;
           is_private?: boolean;
           updated_at?: string;
         };
@@ -92,7 +104,18 @@ export interface Database {
       game_genres: {
         Row: { game_id: string; genre_id: string };
         Insert: { game_id: string; genre_id: string };
-        Update: never;
+        Update: {
+          user_id?: string;
+          game_slug?: string;
+          feedback_type?:
+            | "hide_game"
+            | "show_less"
+            | "show_more"
+            | "prefer_shorter"
+            | "prefer_platform";
+          metadata?: Json;
+          created_at?: string;
+        };
         Relationships: [];
       };
       game_platforms: {
@@ -244,6 +267,196 @@ export interface Database {
         Update: {
           read_at?: string | null;
           updated_at?: string;
+        };
+        Relationships: [];
+      };
+      notification_preferences: {
+        Row: {
+          user_id: string;
+          in_app_followed_you: boolean;
+          in_app_reaction: boolean;
+          in_app_comment: boolean;
+          in_app_system: boolean;
+          email_digest_enabled: boolean;
+          quiet_mode_enabled: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          user_id: string;
+          in_app_followed_you?: boolean;
+          in_app_reaction?: boolean;
+          in_app_comment?: boolean;
+          in_app_system?: boolean;
+          email_digest_enabled?: boolean;
+          quiet_mode_enabled?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          in_app_followed_you?: boolean;
+          in_app_reaction?: boolean;
+          in_app_comment?: boolean;
+          in_app_system?: boolean;
+          email_digest_enabled?: boolean;
+          quiet_mode_enabled?: boolean;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      user_blocks: {
+        Row: {
+          blocker_user_id: string;
+          blocked_user_id: string;
+          created_at: string;
+        };
+        Insert: {
+          blocker_user_id: string;
+          blocked_user_id: string;
+          created_at?: string;
+        };
+        Update: never;
+        Relationships: [];
+      };
+      moderation_reports: {
+        Row: {
+          id: string;
+          reporter_user_id: string;
+          reported_user_id: string | null;
+          game_id: string | null;
+          activity_id: string | null;
+          rating_id: string | null;
+          comment_id: string | null;
+          report_type: "profile" | "review" | "activity" | "comment" | "game";
+          reason: string;
+          status: "open" | "reviewed" | "dismissed" | "actioned";
+          metadata: Json;
+          created_at: string;
+        };
+        Insert: {
+          reporter_user_id: string;
+          reported_user_id?: string | null;
+          game_id?: string | null;
+          activity_id?: string | null;
+          rating_id?: string | null;
+          comment_id?: string | null;
+          report_type: "profile" | "review" | "activity" | "comment" | "game";
+          reason: string;
+          status?: "open" | "reviewed" | "dismissed" | "actioned";
+          metadata?: Json;
+        };
+        Update: never;
+        Relationships: [];
+      };
+      activity_reactions: {
+        Row: {
+          id: string;
+          user_id: string;
+          activity_id: string;
+          reaction: "like";
+          created_at: string;
+        };
+        Insert: {
+          user_id: string;
+          activity_id: string;
+          reaction?: "like";
+          created_at?: string;
+        };
+        Update: never;
+        Relationships: [];
+      };
+      activity_comments: {
+        Row: {
+          id: string;
+          user_id: string;
+          activity_id: string;
+          body: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          user_id: string;
+          activity_id: string;
+          body: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          body?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      recommendation_feedback: {
+        Row: {
+          id: string;
+          user_id: string;
+          game_slug: string;
+          feedback_type:
+            | "hide_game"
+            | "show_less"
+            | "show_more"
+            | "prefer_shorter"
+            | "prefer_platform";
+          metadata: Json;
+          created_at: string;
+        };
+        Insert: {
+          user_id: string;
+          game_slug: string;
+          feedback_type:
+            | "hide_game"
+            | "show_less"
+            | "show_more"
+            | "prefer_shorter"
+            | "prefer_platform";
+          metadata?: Json;
+          created_at?: string;
+        };
+        Update: never;
+        Relationships: [];
+      };
+      custom_shelves: {
+        Row: {
+          id: string;
+          user_id: string;
+          title: string;
+          description: string | null;
+          visibility: "public" | "private";
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          user_id: string;
+          title: string;
+          description?: string | null;
+          visibility?: "public" | "private";
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          title?: string;
+          description?: string | null;
+          visibility?: "public" | "private";
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      custom_shelf_games: {
+        Row: {
+          shelf_id: string;
+          game_id: string;
+          position: number;
+          added_at: string;
+        };
+        Insert: {
+          shelf_id: string;
+          game_id: string;
+          position?: number;
+          added_at?: string;
+        };
+        Update: {
+          position?: number;
         };
         Relationships: [];
       };

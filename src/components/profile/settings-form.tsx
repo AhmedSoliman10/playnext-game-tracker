@@ -1,7 +1,17 @@
 "use client";
 
+import type React from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { AlertTriangle, Loader2, Trash2, UserRound } from "lucide-react";
+import {
+  AlertTriangle,
+  Bell,
+  Loader2,
+  MessageCircle,
+  Moon,
+  Upload,
+  Trash2,
+  UserRound,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm, useWatch, type Resolver } from "react-hook-form";
@@ -9,16 +19,21 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { profileSchema, type ProfileInput } from "@/lib/validation/auth";
+import type { DiscordProfile, NotificationPreferences } from "@/lib/types";
 
 export function SettingsForm({
   displayName,
   avatarUrl,
   isPrivate,
+  discord,
+  notificationPreferences,
   demoMode,
 }: {
   displayName: string;
   avatarUrl?: string | null;
   isPrivate: boolean;
+  discord?: DiscordProfile | null;
+  notificationPreferences: NotificationPreferences;
   demoMode: boolean;
 }) {
   const router = useRouter();
@@ -27,6 +42,22 @@ export function SettingsForm({
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [deleteConfirmation, setDeleteConfirmation] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
+  const [notificationMessage, setNotificationMessage] = useState<string | null>(
+    null,
+  );
+  const [notificationError, setNotificationError] = useState<string | null>(
+    null,
+  );
+  const [isSavingNotifications, setIsSavingNotifications] = useState(false);
+  const [preferences, setPreferences] = useState(notificationPreferences);
+  const [importCsv, setImportCsv] = useState("");
+  const [importMessage, setImportMessage] = useState<string | null>(null);
+  const [importError, setImportError] = useState<string | null>(null);
+  const [isImporting, setIsImporting] = useState(false);
+  const [steamProfile, setSteamProfile] = useState("");
+  const [steamMessage, setSteamMessage] = useState<string | null>(null);
+  const [steamError, setSteamError] = useState<string | null>(null);
+  const [isImportingSteam, setIsImportingSteam] = useState(false);
   const {
     register,
     control,
@@ -87,6 +118,128 @@ export function SettingsForm({
       router.refresh();
     } finally {
       setIsDeleting(false);
+    }
+  }
+
+  async function saveNotificationPreferences() {
+    setNotificationError(null);
+    setNotificationMessage(null);
+    setIsSavingNotifications(true);
+    try {
+      const response = await fetch("/api/notification-preferences", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(preferences),
+      });
+      const payload = (await response.json()) as {
+        preferences?: NotificationPreferences;
+        error?: string;
+      };
+
+      if (!response.ok || payload.error || !payload.preferences) {
+        throw new Error(
+          payload.error ?? "Could not update notification preferences.",
+        );
+      }
+
+      setPreferences(payload.preferences);
+      setNotificationMessage("Notification preferences saved.");
+      router.refresh();
+    } catch (error) {
+      setNotificationError(
+        error instanceof Error
+          ? error.message
+          : "Could not update notification preferences.",
+      );
+    } finally {
+      setIsSavingNotifications(false);
+    }
+  }
+
+  function updatePreference(
+    key: keyof NotificationPreferences,
+    value: boolean,
+  ) {
+    setPreferences((current) => ({ ...current, [key]: value }));
+  }
+
+  async function importLibrary() {
+    setImportMessage(null);
+    setImportError(null);
+    setIsImporting(true);
+    try {
+      const response = await fetch("/api/library/import", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ csv: importCsv }),
+      });
+      const payload = (await response.json()) as {
+        imported?: number;
+        skipped?: number;
+        errors?: string[];
+        error?: string;
+      };
+
+      if (!response.ok || payload.error) {
+        throw new Error(payload.error ?? "Could not import library.");
+      }
+
+      setImportMessage(
+        `Imported ${payload.imported ?? 0} row${
+          payload.imported === 1 ? "" : "s"
+        }. Skipped ${payload.skipped ?? 0}.`,
+      );
+      if (payload.errors?.length) {
+        setImportError(payload.errors.slice(0, 3).join(" "));
+      }
+      router.refresh();
+    } catch (error) {
+      setImportError(
+        error instanceof Error ? error.message : "Could not import library.",
+      );
+    } finally {
+      setIsImporting(false);
+    }
+  }
+
+  async function importSteam() {
+    setSteamMessage(null);
+    setSteamError(null);
+    setIsImportingSteam(true);
+    try {
+      const response = await fetch("/api/library/import/steam", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ profile: steamProfile }),
+      });
+      const payload = (await response.json()) as {
+        imported?: number;
+        skipped?: number;
+        errors?: string[];
+        error?: string;
+      };
+
+      if (!response.ok || payload.error) {
+        throw new Error(payload.error ?? "Could not import Steam library.");
+      }
+
+      setSteamMessage(
+        `Imported ${payload.imported ?? 0} Steam match${
+          payload.imported === 1 ? "" : "es"
+        } to Backlog. Skipped ${payload.skipped ?? 0}.`,
+      );
+      if (payload.errors?.length) {
+        setSteamError(payload.errors.slice(0, 3).join(" "));
+      }
+      router.refresh();
+    } catch (error) {
+      setSteamError(
+        error instanceof Error
+          ? error.message
+          : "Could not import Steam library.",
+      );
+    } finally {
+      setIsImportingSteam(false);
     }
   }
 
@@ -197,6 +350,196 @@ export function SettingsForm({
           </div>
         </div>
 
+        <div className="rounded-lg border bg-panel p-5">
+          <div className="flex items-start gap-3">
+            <span className="mt-1 inline-flex h-9 w-9 items-center justify-center rounded-md bg-indigo-400/15 text-indigo-100">
+              <MessageCircle className="h-5 w-5" aria-hidden />
+            </span>
+            <div>
+              <h2 className="text-lg font-bold">Discord</h2>
+              <p className="mt-1 text-sm text-zinc-400">
+                Connect Discord so it appears on your public profile and future
+                community features can recognize both sign-in methods.
+              </p>
+            </div>
+          </div>
+          {discord?.connected ? (
+            <div className="mt-4 flex items-center gap-3 rounded-md border bg-zinc-950/40 p-3">
+              <AvatarPreview
+                src={discord.avatarUrl}
+                name={discord.username ?? watchedDisplayName ?? displayName}
+              />
+              <div className="min-w-0">
+                <p className="truncate font-semibold">
+                  {discord.username ?? "Discord connected"}
+                </p>
+                <p className="text-sm text-zinc-400">Connected to PlayNext</p>
+              </div>
+            </div>
+          ) : (
+            <Button asChild className="mt-4 w-full" variant="secondary">
+              <a href="/api/auth/discord/link">
+                <MessageCircle className="h-4 w-4" />
+                Connect Discord
+              </a>
+            </Button>
+          )}
+        </div>
+
+        <div className="rounded-lg border bg-panel p-5">
+          <div className="flex items-start gap-3">
+            <Bell className="mt-1 h-5 w-5 text-cyan-200" aria-hidden />
+            <div>
+              <h2 className="text-lg font-bold">Notifications</h2>
+              <p className="mt-1 text-sm text-zinc-400">
+                Choose which community events show up in your PlayNext inbox.
+              </p>
+            </div>
+          </div>
+          <div className="mt-4 space-y-3">
+            <PreferenceToggle
+              label="New followers"
+              checked={preferences.inAppFollowedYou}
+              onChange={(checked) =>
+                updatePreference("inAppFollowedYou", checked)
+              }
+            />
+            <PreferenceToggle
+              label="Activity reactions"
+              checked={preferences.inAppReaction}
+              onChange={(checked) => updatePreference("inAppReaction", checked)}
+            />
+            <PreferenceToggle
+              label="Activity comments"
+              checked={preferences.inAppComment}
+              onChange={(checked) => updatePreference("inAppComment", checked)}
+            />
+            <PreferenceToggle
+              label="System updates"
+              checked={preferences.inAppSystem}
+              onChange={(checked) => updatePreference("inAppSystem", checked)}
+            />
+            <PreferenceToggle
+              label="Weekly email digest"
+              checked={preferences.emailDigestEnabled}
+              onChange={(checked) =>
+                updatePreference("emailDigestEnabled", checked)
+              }
+            />
+            <PreferenceToggle
+              label="Quiet mode"
+              icon={Moon}
+              checked={preferences.quietModeEnabled}
+              onChange={(checked) =>
+                updatePreference("quietModeEnabled", checked)
+              }
+            />
+          </div>
+          {notificationError ? (
+            <p role="alert" className="mt-3 text-sm text-rose-200">
+              {notificationError}
+            </p>
+          ) : null}
+          {notificationMessage ? (
+            <p role="status" className="mt-3 text-sm text-lime-200">
+              {notificationMessage}
+            </p>
+          ) : null}
+          <Button
+            type="button"
+            className="mt-4 w-full"
+            disabled={isSavingNotifications}
+            onClick={saveNotificationPreferences}
+          >
+            {isSavingNotifications ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : null}
+            Save notifications
+          </Button>
+        </div>
+
+        <div className="rounded-lg border bg-panel p-5">
+          <div className="flex items-start gap-3">
+            <Upload className="mt-1 h-5 w-5 text-cyan-200" aria-hidden />
+            <div>
+              <h2 className="text-lg font-bold">Library transfer</h2>
+              <p className="mt-1 text-sm text-zinc-400">
+                Export your PlayNext library or paste a CSV with slug, status,
+                isFavorite, overallRating, and review columns.
+              </p>
+            </div>
+          </div>
+          <Button asChild variant="secondary" className="mt-4 w-full">
+            <a href="/api/library/export">Export CSV</a>
+          </Button>
+          <div className="mt-4 space-y-2">
+            <Label htmlFor="libraryImportCsv">Import CSV</Label>
+            <textarea
+              id="libraryImportCsv"
+              value={importCsv}
+              onChange={(event) => setImportCsv(event.target.value)}
+              rows={5}
+              placeholder="slug,status,isFavorite,overallRating,review"
+              className="w-full resize-y rounded-md border bg-zinc-950 px-3 py-2 text-sm outline-none focus:border-cyan-300"
+            />
+          </div>
+          {importMessage ? (
+            <p role="status" className="mt-3 text-sm text-lime-200">
+              {importMessage}
+            </p>
+          ) : null}
+          {importError ? (
+            <p role="alert" className="mt-3 text-sm text-rose-200">
+              {importError}
+            </p>
+          ) : null}
+          <Button
+            type="button"
+            className="mt-4 w-full"
+            disabled={isImporting || !importCsv.trim()}
+            onClick={importLibrary}
+          >
+            {isImporting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+            Import CSV
+          </Button>
+          <div className="mt-5 border-t pt-4">
+            <Label htmlFor="steamProfile">Steam public profile</Label>
+            <Input
+              id="steamProfile"
+              value={steamProfile}
+              onChange={(event) => setSteamProfile(event.target.value)}
+              placeholder="steamcommunity.com/id/yourname"
+              className="mt-2"
+            />
+            <p className="mt-2 text-xs text-zinc-500">
+              Steam games import into Backlog after matching titles in the
+              catalog. Your Steam profile and game details must be public.
+            </p>
+            {steamMessage ? (
+              <p role="status" className="mt-3 text-sm text-lime-200">
+                {steamMessage}
+              </p>
+            ) : null}
+            {steamError ? (
+              <p role="alert" className="mt-3 text-sm text-rose-200">
+                {steamError}
+              </p>
+            ) : null}
+            <Button
+              type="button"
+              className="mt-4 w-full"
+              variant="secondary"
+              disabled={isImportingSteam || !steamProfile.trim()}
+              onClick={importSteam}
+            >
+              {isImportingSteam ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : null}
+              Import Steam library
+            </Button>
+          </div>
+        </div>
+
         <div className="rounded-lg border border-rose-400/40 bg-rose-950/20 p-5">
           <div className="flex items-start gap-3">
             <AlertTriangle className="mt-1 h-5 w-5 text-rose-200" />
@@ -238,6 +581,33 @@ export function SettingsForm({
         </div>
       </aside>
     </section>
+  );
+}
+
+function PreferenceToggle({
+  label,
+  checked,
+  onChange,
+  icon: Icon,
+}: {
+  label: string;
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+  icon?: React.ComponentType<{ className?: string }>;
+}) {
+  return (
+    <label className="flex items-center justify-between gap-3 rounded-md border bg-zinc-950/30 px-3 py-2">
+      <span className="inline-flex min-w-0 items-center gap-2 text-sm font-semibold">
+        {Icon ? <Icon className="h-4 w-4 text-zinc-400" aria-hidden /> : null}
+        {label}
+      </span>
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={(event) => onChange(event.target.checked)}
+        className="h-4 w-4 accent-cyan-300"
+      />
+    </label>
   );
 }
 

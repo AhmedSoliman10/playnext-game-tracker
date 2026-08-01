@@ -366,11 +366,12 @@ export function StatusButtons({
   if (compact) {
     return (
       <div className="space-y-2">
-        <div className="grid grid-cols-4 gap-2">
+        <div className="grid grid-cols-3 gap-2 min-[520px]:grid-cols-4">
           <Button
             type="button"
             variant={localFavorite ? "default" : "outline"}
             size="icon"
+            className="h-9 min-h-9 w-full min-w-0 p-0"
             onClick={toggleFavorite}
             disabled={busyStatus !== null}
             aria-label={
@@ -404,6 +405,7 @@ export function StatusButtons({
                 type="button"
                 variant={variant}
                 size="icon"
+                className="h-9 min-h-9 w-full min-w-0 p-0"
                 onClick={() => updateStatus(action.status)}
                 disabled={busyStatus !== null}
                 aria-label={ariaLabel}
@@ -423,6 +425,7 @@ export function StatusButtons({
               type="button"
               variant="ghost"
               size="icon"
+              className="h-9 min-h-9 w-full min-w-0 p-0"
               onClick={removeGame}
               disabled={busyStatus !== null}
               aria-label="Remove from library"

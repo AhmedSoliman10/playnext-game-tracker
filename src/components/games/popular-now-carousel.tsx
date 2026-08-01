@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef } from "react";
+import { useRef } from "react";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight, Flame, Star } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -8,10 +8,6 @@ import { Button } from "@/components/ui/button";
 import { GameArtwork } from "@/components/games/game-artwork";
 import type { GameSummary } from "@/lib/games/types";
 import { getReleaseYear } from "@/lib/utils";
-
-const AUTO_SCROLL_PX_PER_SECOND = 92;
-const WATCHDOG_INTERVAL_MS = 300;
-const WATCHDOG_STALL_MS = 450;
 
 export function PopularNowCarousel({
   games,
@@ -24,55 +20,8 @@ export function PopularNowCarousel({
 }) {
   const railRef = useRef<HTMLDivElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
-  const firstGroupRef = useRef<HTMLDivElement>(null);
-  const pausedRef = useRef(false);
-  const frameRef = useRef<number | null>(null);
-  const watchdogRef = useRef<number | null>(null);
-  const previousFrameTimeRef = useRef<number | null>(null);
-  const offsetRef = useRef(0);
-  const loopPointRef = useRef(0);
   const visibleGames = games.slice(0, 12);
   const shouldAutoScroll = visibleGames.length > 1;
-
-  const measureLoopPoint = useCallback(() => {
-    const firstGroup = firstGroupRef.current;
-    const track = trackRef.current;
-
-    if (!firstGroup || !track) {
-      return 0;
-    }
-
-    const styles = window.getComputedStyle(track);
-    const gap = Number.parseFloat(styles.columnGap || styles.gap);
-    const groupWidth =
-      firstGroup.getBoundingClientRect().width || firstGroup.scrollWidth;
-    const loopPoint = groupWidth + (Number.isFinite(gap) ? gap : 0);
-    loopPointRef.current = loopPoint;
-    return loopPoint;
-  }, []);
-
-  const applyOffset = useCallback(
-    (nextOffset: number) => {
-      const track = trackRef.current;
-      const loopPoint = loopPointRef.current || measureLoopPoint();
-      if (!track || loopPoint <= 0) {
-        return;
-      }
-
-      const normalizedOffset =
-        ((nextOffset % loopPoint) + loopPoint) % loopPoint;
-      offsetRef.current = normalizedOffset;
-      track.style.transform = `translate3d(${-normalizedOffset}px, 0, 0)`;
-    },
-    [measureLoopPoint],
-  );
-
-  const moveCarouselBy = useCallback(
-    (delta: number) => {
-      applyOffset(offsetRef.current + delta);
-    },
-    [applyOffset],
-  );
 
   function scrollRail(direction: 1 | -1) {
     const rail = railRef.current;
@@ -82,104 +31,8 @@ export function PopularNowCarousel({
     const step = card
       ? card.offsetWidth + 16
       : (rail?.clientWidth ?? 320) * 0.82;
-    moveCarouselBy(direction * step);
+    rail?.scrollBy({ left: direction * step, behavior: "smooth" });
   }
-
-  useEffect(() => {
-    const reducedMotion = window.matchMedia(
-      "(prefers-reduced-motion: reduce)",
-    ).matches;
-    const rail = railRef.current;
-    const track = trackRef.current;
-
-    if (!rail || !track || !shouldAutoScroll) {
-      return;
-    }
-
-    function keepCurrentProgressAfterResize() {
-      const previousLoopPoint = loopPointRef.current;
-      const progress =
-        previousLoopPoint > 0 ? offsetRef.current / previousLoopPoint : 0;
-      const nextLoopPoint = measureLoopPoint();
-      applyOffset(progress * nextLoopPoint);
-    }
-
-    keepCurrentProgressAfterResize();
-
-    let resizeObserver: ResizeObserver | null = null;
-    if (typeof ResizeObserver !== "undefined") {
-      resizeObserver = new ResizeObserver(keepCurrentProgressAfterResize);
-      resizeObserver.observe(rail);
-      if (firstGroupRef.current) {
-        resizeObserver.observe(firstGroupRef.current);
-      }
-    } else {
-      window.addEventListener("resize", keepCurrentProgressAfterResize);
-    }
-
-    if (reducedMotion) {
-      return () => {
-        resizeObserver?.disconnect();
-        window.removeEventListener("resize", keepCurrentProgressAfterResize);
-      };
-    }
-
-    function tick(timestamp: number) {
-      if (previousFrameTimeRef.current === null) {
-        previousFrameTimeRef.current = timestamp;
-      }
-
-      const deltaMs = timestamp - previousFrameTimeRef.current;
-      previousFrameTimeRef.current = timestamp;
-
-      if (
-        !pausedRef.current &&
-        (loopPointRef.current || measureLoopPoint()) > 0
-      ) {
-        moveCarouselBy((AUTO_SCROLL_PX_PER_SECOND * deltaMs) / 1000);
-      }
-
-      frameRef.current = window.requestAnimationFrame(tick);
-    }
-
-    frameRef.current = window.requestAnimationFrame(tick);
-    watchdogRef.current = window.setInterval(() => {
-      if (
-        document.visibilityState !== "visible" ||
-        pausedRef.current ||
-        previousFrameTimeRef.current === null
-      ) {
-        return;
-      }
-
-      const now = performance.now();
-      const stalledFor = now - previousFrameTimeRef.current;
-      if (stalledFor > WATCHDOG_STALL_MS) {
-        if ((loopPointRef.current || measureLoopPoint()) <= 0) {
-          return;
-        }
-
-        moveCarouselBy(
-          (AUTO_SCROLL_PX_PER_SECOND *
-            Math.min(stalledFor, WATCHDOG_STALL_MS)) /
-            1000,
-        );
-        previousFrameTimeRef.current = now;
-      }
-    }, WATCHDOG_INTERVAL_MS);
-
-    return () => {
-      if (frameRef.current !== null) {
-        window.cancelAnimationFrame(frameRef.current);
-      }
-      if (watchdogRef.current !== null) {
-        window.clearInterval(watchdogRef.current);
-      }
-      resizeObserver?.disconnect();
-      window.removeEventListener("resize", keepCurrentProgressAfterResize);
-      previousFrameTimeRef.current = null;
-    };
-  }, [applyOffset, measureLoopPoint, moveCarouselBy, shouldAutoScroll]);
 
   if (!visibleGames.length) {
     return null;
@@ -277,21 +130,14 @@ export function PopularNowCarousel({
       <div
         ref={railRef}
         data-testid="popular-carousel-rail"
-        className="scrollbar-hidden -mx-4 overflow-hidden px-4 pb-2 [mask-image:linear-gradient(90deg,transparent,black_4%,black_96%,transparent)] sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8"
-        onFocusCapture={() => {
-          pausedRef.current = true;
-        }}
-        onBlurCapture={() => {
-          pausedRef.current = false;
-        }}
+        className="scrollbar-hidden -mx-4 overflow-x-auto overflow-y-hidden px-4 pb-2 [mask-image:linear-gradient(90deg,transparent,black_4%,black_96%,transparent)] sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8"
       >
         <div
           ref={trackRef}
           data-testid="popular-carousel-track"
-          className="flex w-max gap-4 will-change-transform"
+          className="popular-carousel-track flex w-max gap-4 will-change-transform"
         >
           <div
-            ref={firstGroupRef}
             data-testid="popular-carousel-primary-group"
             className="flex shrink-0 gap-4"
           >

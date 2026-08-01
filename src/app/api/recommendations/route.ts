@@ -14,6 +14,7 @@ import {
   getDiscoveryInteractionSlugs,
   getLibraryEntries,
 } from "@/lib/server/library-service";
+import { getRecommendationFeedback } from "@/lib/server/recommendation-feedback-service";
 
 export async function GET() {
   const user = await getCurrentUser();
@@ -26,6 +27,7 @@ export async function GET() {
 
   try {
     const entries = await getLibraryEntries(user);
+    const feedback = await getRecommendationFeedback(user);
     const discoverySlugs = await getDiscoveryInteractionSlugs(user);
     const hasTasteSignal = entries.some(
       (entry) =>
@@ -54,7 +56,7 @@ export async function GET() {
 
     return NextResponse.json({
       recommendations: hasTasteSignal
-        ? getRecommendations(games, entries, 8)
+        ? getRecommendations(games, entries, 8, feedback)
         : getExploratoryRecommendations(games, answeredGameKeys, 8),
     });
   } catch (error) {

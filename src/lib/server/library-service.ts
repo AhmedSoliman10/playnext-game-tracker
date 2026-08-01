@@ -496,6 +496,20 @@ export async function getGameReviewsBySlug(
   const profilesById = new Map(
     (profiles ?? []).map((profile) => [profile.id, profile]),
   );
+  const followedProfileIds = new Set<string>();
+  if (viewer && profileIds.length) {
+    const { data: follows, error: followsError } = await admin
+      .from("follows")
+      .select("following_id")
+      .eq("follower_id", viewer.userId)
+      .in("following_id", profileIds);
+
+    if (!followsError) {
+      for (const follow of follows ?? []) {
+        followedProfileIds.add(follow.following_id);
+      }
+    }
+  }
 
   return ratingRows
     .map((rating) => {
@@ -504,20 +518,28 @@ export async function getGameReviewsBySlug(
         return null;
       }
 
-      return mapGameReview(rating, profile);
+      return mapGameReview(rating, profile, followedProfileIds.has(profile.id));
     })
-    .filter((review): review is GameReview => Boolean(review));
+    .filter((review): review is GameReview => Boolean(review))
+    .sort((a, b) => {
+      if (a.isFollowedByViewer !== b.isFollowedByViewer) {
+        return a.isFollowedByViewer ? -1 : 1;
+      }
+      return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+    });
 }
 
 function mapGameReview(
   rating: RatingRow,
   profile: Pick<ProfileRow, "id" | "display_name" | "avatar_url">,
+  isFollowedByViewer: boolean,
 ): GameReview {
   return {
     id: rating.id,
     userId: profile.id,
     displayName: profile.display_name ?? "Player",
     avatarUrl: profile.avatar_url,
+    isFollowedByViewer,
     overallRating: rating.overall_rating,
     storyRating: rating.story_rating,
     gameplayRating: rating.gameplay_rating,

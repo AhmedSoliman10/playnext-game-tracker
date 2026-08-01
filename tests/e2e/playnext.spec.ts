@@ -28,11 +28,45 @@ test("popular carousel moves automatically on the landing page", async ({
     .toBeLessThan(initialBox!.x - 20);
 
   await expect
-    .poll(() => track.evaluate((element) => element.style.transform), {
-      message: "popular carousel track should keep auto-scrolling",
-      timeout: 5_000,
-    })
-    .toContain("translate3d");
+    .poll(
+      () =>
+        track.evaluate((element) => getComputedStyle(element).animationName),
+      {
+        message: "popular carousel track should keep auto-scrolling",
+        timeout: 5_000,
+      },
+    )
+    .toContain("popular-carousel-scroll");
+});
+
+test("landing page stays within basic performance budgets", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.waitForLoadState("networkidle");
+  await page.waitForTimeout(500);
+
+  const metrics = await page.evaluate(() => {
+    const navigation = performance.getEntriesByType("navigation")[0] as
+      PerformanceNavigationTiming | undefined;
+    const lcpEntry = performance
+      .getEntriesByType("largest-contentful-paint")
+      .at(-1);
+
+    return {
+      domContentLoaded: navigation
+        ? navigation.domContentLoadedEventEnd - navigation.startTime
+        : 0,
+      load: navigation ? navigation.loadEventEnd - navigation.startTime : 0,
+      lcp: lcpEntry ? lcpEntry.startTime : 0,
+    };
+  });
+
+  expect(metrics.domContentLoaded).toBeLessThan(4_000);
+  expect(metrics.load).toBeLessThan(7_000);
+  if (metrics.lcp > 0) {
+    expect(metrics.lcp).toBeLessThan(4_000);
+  }
 });
 
 test("critical game tracking journey works with keyboard-accessible discovery", async ({

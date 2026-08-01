@@ -250,6 +250,11 @@ export function GameDetailsClient({
                       </span>
                     </span>
                   </Link>
+                  {review.isFollowedByViewer ? (
+                    <Badge className="border-cyan-300/30 bg-cyan-300/10 text-cyan-100">
+                      Following
+                    </Badge>
+                  ) : null}
                 </div>
                 <RatingDetails rating={review} />
               </article>

@@ -82,11 +82,29 @@ export interface UserContext {
   email?: string | null;
   displayName?: string | null;
   avatarUrl?: string | null;
+  discord?: DiscordProfile | null;
   isDemo: boolean;
 }
 
 export type NotificationType =
   "followed_you" | "reaction" | "comment" | "system";
+
+export interface DiscordProfile {
+  connected: boolean;
+  userId?: string | null;
+  username?: string | null;
+  avatarUrl?: string | null;
+  connectedAt?: string | null;
+}
+
+export interface NotificationPreferences {
+  inAppFollowedYou: boolean;
+  inAppReaction: boolean;
+  inAppComment: boolean;
+  inAppSystem: boolean;
+  emailDigestEnabled: boolean;
+  quietModeEnabled: boolean;
+}
 
 export interface NotificationItem {
   id: string;
@@ -114,6 +132,7 @@ export interface GameReview {
   userId: string;
   displayName: string;
   avatarUrl?: string | null;
+  isFollowedByViewer?: boolean;
   overallRating: number;
   storyRating?: number | null;
   gameplayRating?: number | null;
@@ -126,16 +145,23 @@ export interface GameReview {
   updatedAt: string;
 }
 
+export interface GameReviewSummary {
+  friendAverageRating: number | null;
+  friendRatingCount: number;
+}
+
 export interface PublicProfile {
   id: string;
   displayName: string;
   avatarUrl?: string | null;
+  discord?: DiscordProfile | null;
   createdAt: string;
   followersCount: number;
   followingCount: number;
   isFollowing: boolean;
   isCurrentUser: boolean;
   isPrivate?: boolean;
+  isBlockedByViewer?: boolean;
 }
 
 export interface PublicActivityItem {
@@ -157,7 +183,49 @@ export interface PublicActivityItem {
   wouldRecommend?: boolean | null;
   review?: string | null;
   isFavorite?: boolean | null;
+  reactionCount: number;
+  viewerReacted: boolean;
+  comments: PublicActivityComment[];
   createdAt: string;
+}
+
+export interface PublicActivityComment {
+  id: string;
+  playerId: string;
+  playerName: string;
+  playerAvatarUrl?: string | null;
+  body: string;
+  createdAt: string;
+}
+
+export type RecommendationFeedbackAction =
+  | "show_more"
+  | "show_less"
+  | "hide_game"
+  | "prefer_shorter"
+  | "prefer_platform";
+
+export interface RecommendationFeedback {
+  gameSlug: string;
+  action: RecommendationFeedbackAction;
+  platform?: string | null;
+}
+
+export interface CustomShelf {
+  id: string;
+  ownerId: string;
+  title: string;
+  description?: string | null;
+  isPublic: boolean;
+  createdAt: string;
+  updatedAt: string;
+  entries: LibraryEntry[];
+}
+
+export interface TasteCompatibility {
+  score: number;
+  label: string;
+  reasons: string[];
 }
 
 export interface ActivityItem {

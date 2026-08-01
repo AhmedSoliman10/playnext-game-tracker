@@ -107,4 +107,29 @@ describe("recommendation scoring", () => {
     ).toBe(false);
     expect(recommendations.map((item) => item.game.slug)).toContain(zelda.slug);
   });
+
+  it("applies saved feedback to hide and boost future recommendations", () => {
+    const zelda = seedGames.find(
+      (game) => game.slug === "the-legend-of-zelda-breath-of-the-wild",
+    )!;
+    const celeste = seedGames.find((game) => game.slug === "celeste")!;
+
+    const recommendations = getRecommendations(
+      [zelda, celeste],
+      [entry("hades")],
+      10,
+      [
+        { gameSlug: zelda.slug, action: "hide_game" },
+        { gameSlug: celeste.slug, action: "prefer_shorter" },
+      ],
+    );
+
+    expect(recommendations.map((item) => item.game.slug)).not.toContain(
+      zelda.slug,
+    );
+    expect(recommendations.map((item) => item.game.slug)).toContain(
+      celeste.slug,
+    );
+    expect(recommendations[0]?.reasons.join(" ")).toMatch(/shorter/i);
+  });
 });

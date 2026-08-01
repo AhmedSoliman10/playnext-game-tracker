@@ -61,6 +61,26 @@ textarea {
   animation: page-in 220ms ease-out both;
 }
 
+@keyframes popular-carousel-scroll {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .popular-carousel-track {
+    animation: popular-carousel-scroll 46s linear infinite;
+  }
+
+  .popular-carousel-track:hover,
+  .popular-carousel-track:focus-within {
+    animation-play-state: paused;
+  }
+}
+
 .scrollbar-hidden {
   -ms-overflow-style: none;
   scrollbar-width: none;

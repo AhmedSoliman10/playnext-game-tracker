@@ -34,6 +34,11 @@ Most game databases are great at storing information, but weak at helping player
 - Game details pages at `/games/[slug]` with cover art, screenshots, metadata, status controls, and rating controls.
 - Search with IGDB-powered results, spelling-tolerant fallbacks, filters, sorting, URL sync, and 25-result pagination.
 - Dashboard and profile statistics with lightweight CSS charts.
+- Popular-right-now carousel and recommendation cards with feedback controls.
+- Community profiles, follows, public activity, reactions, comments, report/block controls, and Discord profile linking.
+- Rich public profiles with shelves, visible library sections, reviews, category ratings, and taste compatibility.
+- CSV library import/export plus public Steam library import by profile URL or SteamID.
+- Notification center and per-user notification preferences.
 - Supabase Auth and PostgreSQL persistence with RLS policies.
 - Seeded/demo provider so the app works even without external credentials.
 - Vitest unit/integration coverage and Playwright end-to-end coverage.
@@ -120,7 +125,7 @@ Gmail is fine for early testing, but a transactional provider such as Resend, Po
 
 ## Discord OAuth Setup
 
-The app includes a Discord sign-in button and `/api/auth/discord` OAuth starter route. Supabase still needs the Discord provider credentials.
+The app includes a Discord sign-in button and an account-linking flow for users who created their account before Discord was enabled. Supabase still needs the Discord provider credentials.
 
 1. In Supabase, open Authentication -> Providers -> Discord.
 2. Copy the Supabase callback URL shown there. It looks like:
@@ -140,6 +145,8 @@ The app includes a Discord sign-in button and `/api/auth/discord` OAuth starter 
    - `http://localhost:8000/auth/confirm/reset`
 8. Redeploy or refresh the app, then use Continue with Discord on `/login` or `/signup`.
 
+Existing email/password users can connect Discord later from `/settings`.
+
 The Discord Developer Portal app icon is available at:
 
 - `public/playnext-discord-app-icon.png`
@@ -153,6 +160,7 @@ Newer migrations should be applied in timestamp order. The community/profile con
 
 - `supabase/migrations/202607230001_profiles_community_auth_controls.sql`
 - `supabase/migrations/202607230002_profile_privacy_and_display_name_strictness.sql`
+- `supabase/migrations/202608010001_social_feedback_profile_features.sql`
 
 With Supabase CLI:
 
@@ -189,6 +197,10 @@ IGDB_CLIENT_SECRET=your_twitch_client_secret
 ```
 
 Provider order is IGDB, then the seeded catalog. If credentials are missing or IGDB is unavailable, PlayNext falls back to seeded data.
+
+## Library Import And Export
+
+From `/settings`, signed-in users can export their library as CSV, import that CSV again, or import a public Steam library by Steam profile URL, custom ID, or SteamID64. The Steam importer does not need a Steam API key; it reads public profile game data and matches titles against the PlayNext catalog. Imported Steam games are added to Backlog instead of Played because Steam public library data does not reliably mean a game was completed.
 
 ## Commands
 
@@ -229,6 +241,7 @@ https://playnext-game-tracker.vercel.app
 - Browser mutations go through validated server endpoints.
 - Zod validates auth forms, ratings, statuses, profile updates, search params, and IGDB responses.
 - User-owned tables have RLS policies scoped to `auth.uid()`.
+- Community tables use RLS, block-aware reads, and ownership checks for reactions, comments, reports, shelves, and recommendation feedback.
 - Global game metadata is readable to authenticated users but has no browser insert/update/delete policies.
 - Server-side mutation routes include simple in-memory rate limiting.
 - `SUPABASE_SERVICE_ROLE_KEY` and `IGDB_CLIENT_SECRET` are never used in client components.
@@ -243,7 +256,11 @@ Current meaningful coverage includes:
 - statistics and gaming personality assignment
 - IGDB response normalization
 - library status/rating integration behavior
+- taste compatibility scoring
+- recommendation feedback controls
+- popular carousel motion behavior
 - critical Playwright journey for sign-in, discovery, rating, library, details, backlog, and keyboard-accessible discovery
+- basic Core Web Vitals timing budgets for the homepage
 
 ## Contributing
 
@@ -260,15 +277,19 @@ Good first areas:
 - additional provider normalization tests
 - accessibility review for mobile discovery
 - profile statistics refinements
+- moderation dashboard for reports
+- deeper Steam import matching
 
 ## Roadmap
 
 - User-controlled discovery reset.
 - Server-side pagination for very large Supabase libraries.
-- Richer recommendation tuning controls.
+- Advanced recommendation feedback analytics.
 - Optional AI-generated assistant copy behind a provider interface.
-- Import/export of existing game lists.
-- Public share pages for favorite games and yearly stats.
+- Steam OAuth import and richer external account connections.
+- Game clubs, group queues, and community challenges.
+- Public yearly recap pages and share cards.
+- Admin moderation console and abuse dashboards.
 
 ## Known Limitations
 
@@ -276,6 +297,9 @@ Good first areas:
 - Discord OAuth needs provider credentials enabled in Supabase before it can complete sign-in.
 - Recommendation templates are deterministic and do not call an AI API.
 - Live IGDB metadata sync needs `SUPABASE_SERVICE_ROLE_KEY` if games are not already seeded in Supabase.
+- Steam import depends on public Steam profile visibility and title matching.
+- Notification digest preferences are stored, but a scheduled email digest sender is not implemented yet.
+- Reports are stored for moderation, but the first admin review console is still a future phase.
 
 ## License
 

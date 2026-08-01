@@ -1,5 +1,6 @@
-import { act, render, screen } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { PopularNowCarousel } from "@/components/games/popular-now-carousel";
 import type { GameSummary } from "@/lib/games/types";
 
@@ -22,56 +23,45 @@ const games: GameSummary[] = Array.from({ length: 3 }, (_, index) => ({
 }));
 
 describe("PopularNowCarousel", () => {
-  const animationFrames: FrameRequestCallback[] = [];
-
-  beforeEach(() => {
-    animationFrames.length = 0;
-    vi.stubGlobal(
-      "matchMedia",
-      vi.fn(() => ({
-        matches: false,
-        addEventListener: vi.fn(),
-        removeEventListener: vi.fn(),
-      })),
-    );
-    vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
-      animationFrames.push(callback);
-      return animationFrames.length;
-    });
-    vi.spyOn(window, "cancelAnimationFrame").mockImplementation(() => {});
-  });
-
   afterEach(() => {
-    vi.unstubAllGlobals();
     vi.restoreAllMocks();
   });
 
-  it("auto-scrolls the popular rail without user input", () => {
+  it("renders a duplicated CSS marquee track for automatic scrolling", () => {
     render(<PopularNowCarousel games={games} />);
 
-    const rail = screen.getByTestId("popular-carousel-rail") as HTMLDivElement;
     const track = screen.getByTestId(
       "popular-carousel-track",
     ) as HTMLDivElement;
     const firstGroup = screen.getByTestId(
       "popular-carousel-primary-group",
     ) as HTMLDivElement;
-    Object.defineProperty(firstGroup, "scrollWidth", {
+
+    expect(track).toHaveClass("popular-carousel-track");
+    expect(firstGroup.children).toHaveLength(games.length);
+    expect(track.querySelectorAll("[aria-hidden='true']")).not.toHaveLength(0);
+  });
+
+  it("keeps arrow buttons useful through native rail scrolling", async () => {
+    render(<PopularNowCarousel games={games} />);
+
+    const rail = screen.getByTestId("popular-carousel-rail") as HTMLDivElement;
+    const scrollBy = vi.fn();
+    Object.defineProperty(rail, "scrollBy", {
       configurable: true,
-      value: 1200,
+      value: scrollBy,
     });
     Object.defineProperty(rail, "clientWidth", {
       configurable: true,
       value: 800,
     });
 
-    act(() => {
-      animationFrames[0]?.(0);
-    });
-    act(() => {
-      animationFrames[1]?.(1000);
-    });
+    await userEvent.click(
+      screen.getByRole("button", { name: "Next popular game" }),
+    );
 
-    expect(track.style.transform).toContain("translate3d(-92px");
+    expect(scrollBy).toHaveBeenCalledWith(
+      expect.objectContaining({ behavior: "smooth" }),
+    );
   });
 });

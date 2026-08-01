@@ -1,5 +1,5 @@
 import type { GameSummary } from "@/lib/games/types";
-import type { LibraryEntry, Rating } from "@/lib/types";
+import type { LibraryEntry, Rating, RecommendationFeedback } from "@/lib/types";
 import { average, roundTo } from "@/lib/utils";
 
 export interface Recommendation {
@@ -18,6 +18,13 @@ export interface RecommendationProfile {
   excludedGameKeys: Set<string>;
   answeredGameKeys: Set<string>;
   highRatedGames: GameSummary[];
+  feedback: {
+    hiddenGameKeys: Set<string>;
+    showLessGameKeys: Set<string>;
+    showMoreGameKeys: Set<string>;
+    preferShorter: boolean;
+    preferredPlatforms: Set<string>;
+  };
 }
 
 function addWeight(map: Map<string, number>, key: string, amount: number) {
@@ -84,6 +91,7 @@ export function isGameInIdentitySet(
 
 export function buildRecommendationProfile(
   entries: LibraryEntry[],
+  feedback: RecommendationFeedback[] = [],
 ): RecommendationProfile {
   const favoriteGenres = new Map<string, number>();
   const preferredPlatforms = new Map<string, number>();
@@ -94,6 +102,13 @@ export function buildRecommendationProfile(
   const answeredGameKeys = new Set<string>();
   const highRatedGames: GameSummary[] = [];
   const preferredYears: number[] = [];
+  const feedbackProfile = {
+    hiddenGameKeys: new Set<string>(),
+    showLessGameKeys: new Set<string>(),
+    showMoreGameKeys: new Set<string>(),
+    preferShorter: false,
+    preferredPlatforms: new Set<string>(),
+  };
 
   for (const entry of entries) {
     const rating = entry.rating?.overallRating ?? 0;
@@ -141,6 +156,25 @@ export function buildRecommendationProfile(
     }
   }
 
+  for (const item of feedback) {
+    const key = getGameSlugIdentityKey(item.gameSlug);
+    if (item.action === "hide_game") {
+      feedbackProfile.hiddenGameKeys.add(key);
+    }
+    if (item.action === "show_less") {
+      feedbackProfile.showLessGameKeys.add(key);
+    }
+    if (item.action === "show_more") {
+      feedbackProfile.showMoreGameKeys.add(key);
+    }
+    if (item.action === "prefer_shorter") {
+      feedbackProfile.preferShorter = true;
+    }
+    if (item.action === "prefer_platform" && item.platform) {
+      feedbackProfile.preferredPlatforms.add(item.platform);
+    }
+  }
+
   return {
     favoriteGenres,
     preferredPlatforms,
@@ -151,6 +185,7 @@ export function buildRecommendationProfile(
     excludedGameKeys,
     answeredGameKeys,
     highRatedGames,
+    feedback: feedbackProfile,
   };
 }
 
@@ -187,7 +222,8 @@ export function scoreGameForRecommendation(
 ): Recommendation {
   if (
     profile.excludedGameIds.has(game.id) ||
-    isGameInIdentitySet(game, profile.excludedGameKeys)
+    isGameInIdentitySet(game, profile.excludedGameKeys) ||
+    isGameInIdentitySet(game, profile.feedback.hiddenGameKeys)
   ) {
     return {
       game,
@@ -242,6 +278,16 @@ export function scoreGameForRecommendation(
     );
   }
 
+  const feedbackPlatforms = game.platforms.filter((platform) =>
+    profile.feedback.preferredPlatforms.has(platform),
+  );
+  if (feedbackPlatforms.length) {
+    score += feedbackPlatforms.length * 2;
+    reasons.push(
+      `Boosted because you asked for more ${feedbackPlatforms.slice(0, 2).join(", ")} recommendations.`,
+    );
+  }
+
   const externalRating = game.externalRating ?? 0;
   if (externalRating >= 8.5) {
     score += 3;
@@ -249,6 +295,27 @@ export function scoreGameForRecommendation(
   } else if (externalRating >= 7.5) {
     score += 1.5;
     reasons.push("Its external rating is solid enough to be worth a look.");
+  }
+
+  if (profile.feedback.preferShorter && game.estimatedPlaytime) {
+    if (game.estimatedPlaytime <= 15) {
+      score += 2.5;
+      reasons.push("Boosted because you asked for shorter games.");
+    } else if (game.estimatedPlaytime >= 45) {
+      score -= 1.5;
+    }
+  }
+
+  if (isGameInIdentitySet(game, profile.feedback.showMoreGameKeys)) {
+    score += 3;
+    reasons.push(
+      "Boosted because you asked for more recommendations like this.",
+    );
+  }
+
+  if (isGameInIdentitySet(game, profile.feedback.showLessGameKeys)) {
+    score -= 5;
+    reasons.push("Lowered because you asked to see less like this.");
   }
 
   const releaseYearScore = yearAffinity(game, profile.preferredYears);
@@ -293,8 +360,9 @@ export function getRecommendations(
   candidates: GameSummary[],
   entries: LibraryEntry[],
   limit = 8,
+  feedback: RecommendationFeedback[] = [],
 ) {
-  const profile = buildRecommendationProfile(entries);
+  const profile = buildRecommendationProfile(entries, feedback);
   return candidates
     .map((game) => scoreGameForRecommendation(game, profile))
     .filter((recommendation) => Number.isFinite(recommendation.score))

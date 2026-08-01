@@ -3,11 +3,17 @@ import {
   CalendarDays,
   LibraryBig,
   Lock,
+  MessageCircle,
   Search,
+  Users,
   UserRound,
 } from "lucide-react";
 import { BarList } from "@/components/charts/bar-list";
 import { GameArtwork } from "@/components/games/game-artwork";
+import {
+  AddToShelfControl,
+  CustomShelfCreator,
+} from "@/components/profile/custom-shelf-controls";
 import { ProfileFollowButton } from "@/components/profile/profile-follow-button";
 import { StatCard } from "@/components/profile/stat-card";
 import { RatingDetails } from "@/components/ratings/rating-details";
@@ -25,7 +31,12 @@ import {
   type ProfileLibrarySort,
   type ProfileLibraryView,
 } from "@/lib/profile/library";
-import type { LibraryEntry, PublicProfile } from "@/lib/types";
+import type {
+  CustomShelf,
+  LibraryEntry,
+  PublicProfile,
+  TasteCompatibility,
+} from "@/lib/types";
 import { cn, formatCompactDate, getReleaseYear } from "@/lib/utils";
 import { assignGamingPersonality, calculateUserStats } from "@/lib/stats/stats";
 
@@ -39,6 +50,7 @@ interface RichProfile {
   followersCount?: number;
   followingCount?: number;
   createdAt?: string;
+  discord?: PublicProfile["discord"];
 }
 
 export function RichProfilePage({
@@ -46,11 +58,15 @@ export function RichProfilePage({
   entries,
   query,
   basePath,
+  compatibility,
+  customShelves = [],
 }: {
   profile: RichProfile | PublicProfile;
   entries: LibraryEntry[];
   query: ProfileLibraryQuery;
   basePath: string;
+  compatibility?: TasteCompatibility | null;
+  customShelves?: CustomShelf[];
 }) {
   const includeHidden = profile.isCurrentUser;
   const stats = calculateUserStats(entries);
@@ -94,6 +110,10 @@ export function RichProfilePage({
         .slice(0, 5),
     },
   ];
+  const shelfOptions = customShelves.map((shelf) => ({
+    id: shelf.id,
+    title: shelf.title,
+  }));
 
   return (
     <section className="space-y-8">
@@ -118,11 +138,37 @@ export function RichProfilePage({
                       Private
                     </Badge>
                   ) : null}
+                  {profile.discord?.connected ? (
+                    <Badge className="border-indigo-300/30 bg-indigo-300/10 text-indigo-100">
+                      <MessageCircle className="h-3.5 w-3.5" aria-hidden />
+                      {profile.discord.username ?? "Discord linked"}
+                    </Badge>
+                  ) : null}
                 </div>
                 <p className="mt-2 max-w-2xl text-zinc-400">
                   {personality.label}: {personality.explanation}
                 </p>
               </div>
+
+              {!profile.isCurrentUser && compatibility ? (
+                <div className="rounded-lg border bg-zinc-950/50 p-4">
+                  <p className="inline-flex items-center gap-2 text-sm font-semibold text-cyan-200">
+                    <Users className="h-4 w-4" aria-hidden />
+                    Taste compatibility
+                  </p>
+                  <div className="mt-2 flex items-end gap-3">
+                    <span className="text-4xl font-black">
+                      {compatibility.score}%
+                    </span>
+                    <span className="pb-1 font-semibold text-zinc-300">
+                      {compatibility.label}
+                    </span>
+                  </div>
+                  <p className="mt-2 text-sm text-zinc-400">
+                    {compatibility.reasons[0]}
+                  </p>
+                </div>
+              ) : null}
 
               <div className="flex flex-wrap gap-2 text-sm text-zinc-300">
                 {profile.createdAt ? (
@@ -241,6 +287,69 @@ export function RichProfilePage({
             </p>
           )}
         </div>
+      </section>
+
+      <section className="space-y-4">
+        <div className="flex flex-col justify-between gap-3 md:flex-row md:items-end">
+          <div>
+            <p className="text-sm font-medium text-cyan-200">Custom shelves</p>
+            <h2 className="text-2xl font-bold">Profile shelves</h2>
+            <p className="mt-1 text-sm text-zinc-400">
+              Curated rows for specific moods, eras, genres, or personal lists.
+            </p>
+          </div>
+        </div>
+        {profile.isCurrentUser ? <CustomShelfCreator /> : null}
+        {customShelves.length ? (
+          <div className="grid gap-4 lg:grid-cols-2">
+            {customShelves.map((shelf) => (
+              <section
+                key={shelf.id}
+                className="rounded-lg border bg-panel p-5"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <h3 className="text-lg font-bold">{shelf.title}</h3>
+                    {shelf.description ? (
+                      <p className="mt-1 text-sm text-zinc-400">
+                        {shelf.description}
+                      </p>
+                    ) : null}
+                  </div>
+                  <Badge className="bg-zinc-950/70">
+                    {shelf.isPublic ? "Public" : "Private"}
+                  </Badge>
+                </div>
+                {shelf.entries.length ? (
+                  <div className="mt-4 flex gap-2 overflow-hidden">
+                    {shelf.entries.slice(0, 8).map((entry) => (
+                      <Link
+                        key={entry.game.slug}
+                        href={`/games/${entry.game.slug}`}
+                        className="w-16 shrink-0 rounded-sm focus-visible:outline-2"
+                        title={entry.game.title}
+                      >
+                        <GameArtwork
+                          src={entry.game.coverImageUrl}
+                          alt={`${entry.game.title} cover`}
+                          className="aspect-[2/3] w-full rounded-sm"
+                        />
+                      </Link>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="mt-4 rounded-md border border-zinc-800 bg-zinc-950/50 p-3 text-sm text-zinc-400">
+                    No games on this shelf yet.
+                  </p>
+                )}
+              </section>
+            ))}
+          </div>
+        ) : profile.isCurrentUser ? null : (
+          <p className="rounded-lg border bg-panel p-5 text-sm text-zinc-400">
+            This player has not shared custom shelves yet.
+          </p>
+        )}
       </section>
 
       <section className="grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
@@ -403,6 +512,7 @@ export function RichProfilePage({
                 key={entry.game.slug}
                 entry={entry}
                 priority={index < 3}
+                shelfOptions={profile.isCurrentUser ? shelfOptions : []}
               />
             ))}
           </div>
@@ -487,9 +597,11 @@ function PosterStrip({ entries }: { entries: LibraryEntry[] }) {
 function ProfileLibraryCard({
   entry,
   priority,
+  shelfOptions,
 }: {
   entry: LibraryEntry;
   priority: boolean;
+  shelfOptions: Array<{ id: string; title: string }>;
 }) {
   return (
     <article className="overflow-hidden rounded-lg border bg-panel transition hover:-translate-y-1 hover:border-cyan-300/70 motion-reduce:hover:translate-y-0">
@@ -535,6 +647,10 @@ function ProfileLibraryCard({
           ) : (
             <p className="text-sm text-zinc-400">Not rated yet.</p>
           )}
+          <AddToShelfControl
+            gameSlug={entry.game.slug}
+            shelves={shelfOptions}
+          />
         </div>
       </div>
     </article>

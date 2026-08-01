@@ -1,4 +1,5 @@
 import { isSupabaseConfigured } from "@/lib/auth/env";
+import { mapDiscordProfileRow } from "@/lib/auth/discord-profile";
 import type { GameSummary } from "@/lib/games/types";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
@@ -19,16 +20,46 @@ import type { FollowInput } from "@/lib/validation/community";
 type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
 type PublicProfileRow = Pick<
   ProfileRow,
-  "id" | "display_name" | "avatar_url" | "created_at" | "is_private"
+  | "id"
+  | "display_name"
+  | "avatar_url"
+  | "created_at"
+  | "is_private"
+  | "discord_user_id"
+  | "discord_username"
+  | "discord_avatar_url"
+  | "discord_connected_at"
 >;
 type GameRow = Database["public"]["Tables"]["games"]["Row"];
 type UserGameRow = Database["public"]["Tables"]["user_games"]["Row"];
 type RatingRow = Database["public"]["Tables"]["ratings"]["Row"];
 type ActivityRow = Database["public"]["Tables"]["activity_log"]["Row"];
+type ActivityCommentRow =
+  Database["public"]["Tables"]["activity_comments"]["Row"];
 
 export interface PublicProfileDetails {
   profile: PublicProfile;
   entries: LibraryEntry[];
+}
+
+function isMissingSocialTable(error: { code?: string } | null) {
+  return error?.code === "42P01" || error?.code === "42703";
+}
+
+function withMissingProfileColumns(
+  profile: Pick<
+    ProfileRow,
+    "id" | "display_name" | "avatar_url" | "created_at"
+  >,
+): PublicProfileRow {
+  return {
+    ...profile,
+    is_private: false,
+    discord_user_id: null,
+    discord_username: null,
+    discord_avatar_url: null,
+    discord_connected_at: null,
+  };
 }
 
 function jsonArray(value: Json | undefined, key: string): string[] {
@@ -107,6 +138,7 @@ function mapPublicProfile(
     id: profile.id,
     displayName: profile.display_name ?? "Player",
     avatarUrl: profile.avatar_url,
+    discord: mapDiscordProfileRow(profile),
     createdAt: profile.created_at,
     followersCount: followerCounts.get(profile.id) ?? 0,
     followingCount: followingCounts.get(profile.id) ?? 0,
@@ -149,6 +181,9 @@ function mapPublicActivity(
   profile: PublicProfileRow,
   game: GameRow,
   rating?: RatingRow,
+  reactionCount = 0,
+  viewerReacted = false,
+  comments: PublicActivityItem["comments"] = [],
 ): PublicActivityItem {
   const metadata = metadataObject(row.metadata);
 
@@ -177,6 +212,23 @@ function mapPublicActivity(
       rating?.would_recommend ?? metadataBoolean(metadata.wouldRecommend),
     review: rating?.review ?? metadataString(metadata.review),
     isFavorite: metadataBoolean(metadata.isFavorite),
+    reactionCount,
+    viewerReacted,
+    comments,
+    createdAt: row.created_at,
+  };
+}
+
+function mapPublicActivityComment(
+  row: ActivityCommentRow,
+  profile: PublicProfileRow,
+): PublicActivityItem["comments"][number] {
+  return {
+    id: row.id,
+    playerId: row.user_id,
+    playerName: profile.display_name ?? "Player",
+    playerAvatarUrl: profile.avatar_url,
+    body: row.body,
     createdAt: row.created_at,
   };
 }
@@ -213,6 +265,47 @@ async function getFollowState(user: UserContext) {
   return { followerCounts, followingCounts, viewerFollows };
 }
 
+async function getBlockedProfileIds(
+  user: UserContext,
+  candidateIds?: string[],
+) {
+  const admin = createSupabaseAdminClient();
+  const blockedIds = new Set<string>();
+  if (!admin || user.isDemo || !isSupabaseConfigured()) {
+    return blockedIds;
+  }
+
+  const query = admin
+    .from("user_blocks")
+    .select("blocker_user_id, blocked_user_id")
+    .or(`blocker_user_id.eq.${user.userId},blocked_user_id.eq.${user.userId}`);
+
+  const { data, error } = candidateIds?.length
+    ? await query.or(
+        `blocker_user_id.in.(${candidateIds.join(",")}),blocked_user_id.in.(${candidateIds.join(",")})`,
+      )
+    : await query;
+
+  if (isMissingSocialTable(error)) {
+    return blockedIds;
+  }
+
+  if (error) {
+    throw new Error("Could not load blocked players.");
+  }
+
+  for (const block of data ?? []) {
+    if (block.blocker_user_id === user.userId) {
+      blockedIds.add(block.blocked_user_id);
+    }
+    if (block.blocked_user_id === user.userId) {
+      blockedIds.add(block.blocker_user_id);
+    }
+  }
+
+  return blockedIds;
+}
+
 export async function getCommunityProfiles(
   user: UserContext,
 ): Promise<PublicProfile[]> {
@@ -228,6 +321,7 @@ export async function getCommunityProfiles(
         isFollowing: false,
         isCurrentUser: true,
         isPrivate: false,
+        discord: user.discord ?? null,
       },
     ];
   }
@@ -236,7 +330,9 @@ export async function getCommunityProfiles(
   let profiles: PublicProfileRow[] = [];
   const { data: profilesWithPrivacy, error: profilesError } = await supabase!
     .from("profiles")
-    .select("id, display_name, avatar_url, created_at, is_private")
+    .select(
+      "id, display_name, avatar_url, created_at, is_private, discord_user_id, discord_username, discord_avatar_url, discord_connected_at",
+    )
     .order("created_at", { ascending: false })
     .limit(48);
 
@@ -255,19 +351,24 @@ export async function getCommunityProfiles(
       throw new Error("Could not load community profiles.");
     }
 
-    profiles = (fallbackProfiles ?? []).map((profile) => ({
-      ...profile,
-      is_private: false,
-    }));
+    profiles = (fallbackProfiles ?? []).map(withMissingProfileColumns);
   } else {
     profiles = profilesWithPrivacy ?? [];
   }
 
   const { followerCounts, followingCounts, viewerFollows } =
     await getFollowState(user);
+  const blockedProfileIds = await getBlockedProfileIds(
+    user,
+    profiles.map((profile) => profile.id),
+  );
 
   return profiles
-    .filter((profile) => !profile.is_private || profile.id === user.userId)
+    .filter(
+      (profile) =>
+        (!profile.is_private || profile.id === user.userId) &&
+        !blockedProfileIds.has(profile.id),
+    )
     .map((profile) =>
       mapPublicProfile(
         profile,
@@ -295,7 +396,9 @@ export async function getCommunityActivityFeed(
   let profiles: PublicProfileRow[] = [];
   const { data: profilesWithPrivacy, error: profilesError } = await admin
     .from("profiles")
-    .select("id, display_name, avatar_url, created_at, is_private");
+    .select(
+      "id, display_name, avatar_url, created_at, is_private, discord_user_id, discord_username, discord_avatar_url, discord_connected_at",
+    );
 
   if (profilesError) {
     if (profilesError.code !== "42703") {
@@ -310,16 +413,19 @@ export async function getCommunityActivityFeed(
       throw new Error("Could not load public activity profiles.");
     }
 
-    profiles = (fallbackProfiles ?? []).map((profile) => ({
-      ...profile,
-      is_private: false,
-    }));
+    profiles = (fallbackProfiles ?? []).map(withMissingProfileColumns);
   } else {
     profiles = profilesWithPrivacy ?? [];
   }
 
+  const blockedProfileIds = await getBlockedProfileIds(
+    user,
+    profiles.map((profile) => profile.id),
+  );
   const visibleProfiles = profiles.filter(
-    (profile) => !profile.is_private || profile.id === user.userId,
+    (profile) =>
+      (!profile.is_private || profile.id === user.userId) &&
+      !blockedProfileIds.has(profile.id),
   );
   const profileIds = visibleProfiles.map((profile) => profile.id);
   if (!profileIds.length) {
@@ -372,6 +478,82 @@ export async function getCommunityActivityFeed(
       rating,
     ]),
   );
+  const activityIds = rows.map((row) => row.id);
+  const reactionCounts = new Map<string, number>();
+  const viewerReactionIds = new Set<string>();
+  const commentsByActivityId = new Map<
+    string,
+    PublicActivityItem["comments"]
+  >();
+
+  const { data: reactions, error: reactionsError } = await admin
+    .from("activity_reactions")
+    .select("activity_id, user_id")
+    .in("activity_id", activityIds);
+
+  if (!isMissingSocialTable(reactionsError)) {
+    if (reactionsError) {
+      throw new Error("Could not load activity reactions.");
+    }
+
+    for (const reaction of reactions ?? []) {
+      reactionCounts.set(
+        reaction.activity_id,
+        (reactionCounts.get(reaction.activity_id) ?? 0) + 1,
+      );
+      if (reaction.user_id === user.userId) {
+        viewerReactionIds.add(reaction.activity_id);
+      }
+    }
+  }
+
+  const { data: comments, error: commentsError } = await admin
+    .from("activity_comments")
+    .select("*")
+    .in("activity_id", activityIds)
+    .order("created_at", { ascending: true })
+    .limit(Math.max(limit * 3, 12));
+
+  if (!isMissingSocialTable(commentsError)) {
+    if (commentsError) {
+      throw new Error("Could not load activity comments.");
+    }
+
+    const commentUserIds = [
+      ...new Set((comments ?? []).map((comment) => comment.user_id)),
+    ].filter((id) => !profilesById.has(id));
+    if (commentUserIds.length) {
+      const { data: commentProfiles, error: commentProfilesError } = await admin
+        .from("profiles")
+        .select(
+          "id, display_name, avatar_url, created_at, is_private, discord_user_id, discord_username, discord_avatar_url, discord_connected_at",
+        )
+        .in("id", commentUserIds);
+
+      if (!commentProfilesError) {
+        for (const profile of commentProfiles ?? []) {
+          if (!profile.is_private && !blockedProfileIds.has(profile.id)) {
+            profilesById.set(profile.id, profile);
+          }
+        }
+      }
+    }
+
+    for (const comment of comments ?? []) {
+      const profile = profilesById.get(comment.user_id);
+      if (!profile) {
+        continue;
+      }
+
+      const current = commentsByActivityId.get(comment.activity_id) ?? [];
+      if (current.length < 3) {
+        commentsByActivityId.set(comment.activity_id, [
+          ...current,
+          mapPublicActivityComment(comment, profile),
+        ]);
+      }
+    }
+  }
 
   return rows
     .map((row) => {
@@ -382,7 +564,15 @@ export async function getCommunityActivityFeed(
       );
 
       return profile && game
-        ? mapPublicActivity(row, profile, game, rating)
+        ? mapPublicActivity(
+            row,
+            profile,
+            game,
+            rating,
+            reactionCounts.get(row.id) ?? 0,
+            viewerReactionIds.has(row.id),
+            commentsByActivityId.get(row.id) ?? [],
+          )
         : null;
     })
     .filter((item): item is PublicActivityItem => Boolean(item));
@@ -408,6 +598,7 @@ export async function getPublicProfileDetails(
         isFollowing: false,
         isCurrentUser: true,
         isPrivate: false,
+        discord: user.discord ?? null,
       },
       entries: [],
     };
@@ -428,7 +619,12 @@ export async function getPublicProfileDetails(
     throw new Error("Could not load that profile.");
   }
 
-  if (!profile || (profile.is_private && profile.id !== user.userId)) {
+  const blockedProfileIds = await getBlockedProfileIds(user, [profileId]);
+  if (
+    !profile ||
+    (profile.is_private && profile.id !== user.userId) ||
+    blockedProfileIds.has(profile.id)
+  ) {
     return null;
   }
 
