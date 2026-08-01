@@ -40,6 +40,7 @@ export async function GET(request: NextRequest) {
   if (!userData.user) {
     const response = settingsErrorRedirect(request, "signed-out");
     copyCookies(fallbackResponse, response);
+    response.cookies.delete(OAUTH_NEXT_COOKIE);
     return response;
   }
 
