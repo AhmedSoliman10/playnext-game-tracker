@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { APP_URL, isSupabaseConfigured } from "@/lib/auth/env";
+import { isSupabaseConfigured } from "@/lib/auth/env";
 import {
   createDemoUser,
   DEMO_SESSION_COOKIE,
@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
       response.cookies.set(DEMO_SESSION_COOKIE, encodeDemoSession(user), {
         httpOnly: true,
         sameSite: "lax",
-        secure: APP_URL.startsWith("https://"),
+        secure: request.nextUrl.protocol === "https:",
         path: "/",
         maxAge: 60 * 60 * 24 * 30,
       });

@@ -328,7 +328,10 @@ export interface Database {
           activity_id: string | null;
           rating_id: string | null;
           comment_id: string | null;
-          report_type: "profile" | "review" | "activity" | "comment" | "game";
+          post_id: string | null;
+          post_comment_id: string | null;
+          report_type:
+            "profile" | "review" | "activity" | "comment" | "post" | "game";
           reason: string;
           status: "open" | "reviewed" | "dismissed" | "actioned";
           metadata: Json;
@@ -341,7 +344,10 @@ export interface Database {
           activity_id?: string | null;
           rating_id?: string | null;
           comment_id?: string | null;
-          report_type: "profile" | "review" | "activity" | "comment" | "game";
+          post_id?: string | null;
+          post_comment_id?: string | null;
+          report_type:
+            "profile" | "review" | "activity" | "comment" | "post" | "game";
           reason: string;
           status?: "open" | "reviewed" | "dismissed" | "actioned";
           metadata?: Json;
@@ -386,6 +392,111 @@ export interface Database {
           body?: string;
           updated_at?: string;
         };
+        Relationships: [];
+      };
+      community_posts: {
+        Row: {
+          id: string;
+          user_id: string;
+          game_id: string | null;
+          body: string;
+          visibility: "public" | "followers";
+          mood:
+            | "discussion"
+            | "playing"
+            | "completed"
+            | "backlog"
+            | "recommendation";
+          image_url: string | null;
+          metadata: Json;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          user_id: string;
+          game_id?: string | null;
+          body: string;
+          visibility?: "public" | "followers";
+          mood?:
+            | "discussion"
+            | "playing"
+            | "completed"
+            | "backlog"
+            | "recommendation";
+          image_url?: string | null;
+          metadata?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          game_id?: string | null;
+          body?: string;
+          visibility?: "public" | "followers";
+          mood?:
+            | "discussion"
+            | "playing"
+            | "completed"
+            | "backlog"
+            | "recommendation";
+          image_url?: string | null;
+          metadata?: Json;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      community_post_reactions: {
+        Row: {
+          id: string;
+          post_id: string;
+          user_id: string;
+          reaction: "like" | "hype" | "played_it" | "backlog";
+          created_at: string;
+        };
+        Insert: {
+          post_id: string;
+          user_id: string;
+          reaction: "like" | "hype" | "played_it" | "backlog";
+          created_at?: string;
+        };
+        Update: {
+          reaction?: "like" | "hype" | "played_it" | "backlog";
+        };
+        Relationships: [];
+      };
+      community_post_comments: {
+        Row: {
+          id: string;
+          post_id: string;
+          user_id: string;
+          body: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          post_id: string;
+          user_id: string;
+          body: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          body?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      community_post_bookmarks: {
+        Row: {
+          post_id: string;
+          user_id: string;
+          created_at: string;
+        };
+        Insert: {
+          post_id: string;
+          user_id: string;
+          created_at?: string;
+        };
+        Update: never;
         Relationships: [];
       };
       recommendation_feedback: {

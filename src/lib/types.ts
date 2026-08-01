@@ -198,6 +198,55 @@ export interface PublicActivityComment {
   createdAt: string;
 }
 
+export type CommunityPostVisibility = "public" | "followers";
+
+export type CommunityPostMood =
+  "discussion" | "playing" | "completed" | "backlog" | "recommendation";
+
+export type CommunityPostReactionType =
+  "like" | "hype" | "played_it" | "backlog";
+
+export interface CommunityPostAuthor {
+  id: string;
+  displayName: string;
+  avatarUrl?: string | null;
+  isCurrentUser: boolean;
+  isFollowing: boolean;
+}
+
+export interface CommunityPostComment {
+  id: string;
+  author: CommunityPostAuthor;
+  body: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CommunityPost {
+  id: string;
+  author: CommunityPostAuthor;
+  body: string;
+  visibility: CommunityPostVisibility;
+  mood: CommunityPostMood;
+  imageUrl?: string | null;
+  game?: import("@/lib/games/types").GameSummary | null;
+  reactionCounts: Record<CommunityPostReactionType, number>;
+  reactionTotal: number;
+  commentCount: number;
+  viewerReaction?: CommunityPostReactionType | null;
+  viewerBookmarked: boolean;
+  comments: CommunityPostComment[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CommunityFeedStats {
+  postCount: number;
+  followingPostCount: number;
+  gamePostCount: number;
+  playerCount: number;
+}
+
 export type RecommendationFeedbackAction =
   | "show_more"
   | "show_less"

@@ -35,7 +35,7 @@ Most game databases are great at storing information, but weak at helping player
 - Search with IGDB-powered results, spelling-tolerant fallbacks, filters, sorting, URL sync, and 25-result pagination.
 - Dashboard and profile statistics with lightweight CSS charts.
 - Popular-right-now carousel and recommendation cards with feedback controls.
-- Community profiles, follows, public activity, reactions, comments, report/block controls, and Discord profile linking.
+- Community hub with posts, game attachments, feed tabs, reactions, comments, bookmarks, sharing, report/block controls, follows, public activity, and Discord profile linking.
 - Rich public profiles with shelves, visible library sections, reviews, category ratings, and taste compatibility.
 - CSV library import/export plus public Steam library import by profile URL or SteamID.
 - Notification center and per-user notification preferences.
@@ -183,6 +183,7 @@ Newer migrations should be applied in timestamp order. The community/profile con
 - `supabase/migrations/202607230002_profile_privacy_and_display_name_strictness.sql`
 - `supabase/migrations/202608010001_social_feedback_profile_features.sql`
 - `supabase/migrations/202608010002_weekly_digest_defaults.sql`
+- `supabase/migrations/202608010003_community_posts.sql`
 
 With Supabase CLI:
 
@@ -233,13 +234,14 @@ PlayNext includes two server-only email flows:
 - `POST /api/admin/email/whats-new` sends a product-update email to signed-in users and creates an in-app system notification.
 - `GET /api/cron/weekly-digest` sends weekly digest email to users with the digest preference enabled.
 
-Both routes require production secrets. Product email requires the signed-in user to match `ADMIN_EMAILS` or `ADMIN_USER_IDS`. Weekly digest requires `Authorization: Bearer $CRON_SECRET`; `vercel.json` schedules it for Monday at 12:00 UTC.
+Both routes require production secrets. Product email requires either a signed-in user matching `ADMIN_EMAILS` or `ADMIN_USER_IDS`, or `Authorization: Bearer $CRON_SECRET` from a trusted server/script. Weekly digest also requires `Authorization: Bearer $CRON_SECRET`; `vercel.json` schedules it for Monday at 12:00 UTC.
 
 Dry-run a product email:
 
 ```bash
 curl -X POST https://your-domain.example/api/admin/email/whats-new \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer your-cron-secret" \
   -d '{"dryRun":true}'
 ```
 
@@ -305,6 +307,7 @@ Current meaningful coverage includes:
 - IGDB response normalization
 - library status/rating integration behavior
 - taste compatibility scoring
+- community post visibility, reaction totals, feed stats, and post validation
 - recommendation feedback controls
 - popular carousel motion behavior
 - critical Playwright journey for sign-in, discovery, rating, library, details, backlog, and keyboard-accessible discovery

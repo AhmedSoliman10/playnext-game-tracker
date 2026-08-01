@@ -223,6 +223,31 @@ test("rating dialog opens inside a mobile viewport after marking played", async 
   expect(dialogBox!.height).toBeLessThanOrEqual(844);
 });
 
+test("community hub renders the social feed after sign-in", async ({
+  page,
+}) => {
+  const email = `community-${Date.now()}@playnext.local`;
+
+  await page.goto("/login");
+  const emailInput = page.getByLabel("Email");
+  await emailInput.clear();
+  await emailInput.fill(email);
+  await page.getByLabel("Password").fill("playnext-demo");
+  await page.getByRole("button", { name: "Sign in" }).click();
+  await expect(page).toHaveURL(/\/dashboard/);
+
+  await page.goto("/community");
+  await expect(
+    page.getByRole("heading", {
+      name: "Talk games with people who actually play them",
+    }),
+  ).toBeVisible();
+  await expect(page.getByLabel("Create a post")).toBeVisible();
+  await expect(page.getByRole("button", { name: "For you" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Game talk" })).toBeVisible();
+  await expect(page.getByText(/weekend list/i)).toBeVisible();
+});
+
 function escapeRegExp(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }

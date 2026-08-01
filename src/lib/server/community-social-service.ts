@@ -251,6 +251,8 @@ export async function reportContent(user: UserContext, input: ReportInput) {
     activity_id: input.activityId ?? null,
     rating_id: input.ratingId ?? null,
     comment_id: input.commentId ?? null,
+    post_id: input.postId ?? null,
+    post_comment_id: input.postCommentId ?? null,
     report_type: input.reportType,
     reason: input.reason,
   });
