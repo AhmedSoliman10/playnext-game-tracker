@@ -88,8 +88,10 @@ function whatsNewBody(displayName: string, request?: Request) {
   const settingsHref = appHref("/settings", request);
   return `
     <p style="margin:0 0 18px;">Hey ${escapeHtml(displayName)},</p>
-    <p style="margin:0 0 18px;">Playnira just got a big upgrade. It is no longer only a place to track games; it is starting to feel like a tiny gaming community built around your taste.</p>
+    <p style="margin:0 0 18px;"><strong>PlayNext is now Playnira.</strong> Same idea you signed up for, but with a name that is more ours: your games, your journey.</p>
+    <p style="margin:0 0 18px;">We rebranded because the app is growing beyond a tracker. Playnira is becoming a place to rate what you played, shape your backlog, discover the next game, and talk with other players around actual game taste.</p>
     <ul style="margin:0 0 18px;padding-left:20px;">
+      <li><strong>New name and identity:</strong> Playnira is the home for the game journey we are building together.</li>
       <li><strong>Discord connect:</strong> link Discord from Settings and show it on your profile.</li>
       <li><strong>Community hub:</strong> write posts, attach games, save posts, share links, and keep conversations going with comments.</li>
       <li><strong>Public profiles:</strong> browse libraries, ratings, reviews, shelves, and taste compatibility.</li>
@@ -99,7 +101,7 @@ function whatsNewBody(displayName: string, request?: Request) {
       <li><strong>Smarter recommendations:</strong> hide, tune, and explain the games Playnira suggests next.</li>
       <li><strong>Weekly digest:</strong> get the best activity and next-game picks in your inbox.</li>
     </ul>
-    <p style="margin:0 0 18px;">The best test is simple: open Playnira, rate one game you truly loved, then check what it recommends next.</p>
+    <p style="margin:0 0 18px;">Open Playnira, check the new homepage/community pulse, and tell us what the app should become next.</p>
     <p style="margin:0;color:#94a3b8;font-size:13px;">You can manage weekly digest email from <a href="${escapeHtml(settingsHref)}" style="color:#67e8f9;">Settings</a>.</p>
   `;
 }
@@ -107,9 +109,14 @@ function whatsNewBody(displayName: string, request?: Request) {
 function whatsNewText(displayName: string, request?: Request) {
   return `Hey ${displayName},
 
-Playnira just got a big upgrade.
+PlayNext is now Playnira.
+
+Same idea you signed up for, but with a name that is more ours: your games, your journey.
+
+We rebranded because the app is growing beyond a tracker. Playnira is becoming a place to rate what you played, shape your backlog, discover the next game, and talk with other players around actual game taste.
 
 New:
+- New Playnira name and identity
 - Discord connect from Settings
 - Community hub posts with game attachments, bookmarks, sharing, and comments
 - Public profiles with libraries, ratings, reviews, shelves, and taste compatibility
@@ -119,7 +126,7 @@ New:
 - Smarter recommendation feedback
 - Weekly digest emails
 
-Open Playnira, rate one game you truly loved, and check what it recommends next:
+Open Playnira and see the new homepage/community pulse:
 ${appHref("/dashboard", request)}
 
 Manage email preferences:
@@ -137,10 +144,10 @@ async function createWhatsNewNotifications(recipients: EmailRecipient[]) {
   const rows = recipients.map((recipient) => ({
     recipient_user_id: recipient.userId,
     notification_type: "system" as const,
-    title: "Playnira just got social",
-    body: "Community posts, Discord connect, public profiles, shelves, Steam import, and smarter recommendation feedback are live.",
+    title: "PlayNext is now Playnira",
+    body: "We rebranded with a new name, a sharper homepage, community posts, Discord connect, public profiles, shelves, and smarter recommendations.",
     link_href: "/dashboard",
-    metadata: { campaign: "playnira-social-update-2026-08-01" },
+    metadata: { campaign: "playnira-rebrand-2026-08-01" },
     created_at: now,
     updated_at: now,
   }));
@@ -185,16 +192,15 @@ export async function sendWhatsNewCampaign({
     try {
       await sendEmail({
         to: recipient.email,
-        subject:
-          "Playnira just got social: posts, Discord, shelves, Steam import, and smarter picks",
+        subject: "PlayNext is now Playnira",
         text: whatsNewText(recipient.displayName, request),
         html: emailLayout({
           preheader:
-            "Community posts, Discord connect, public profiles, shelves, Steam import, and smarter recommendations are live.",
-          title: "Playnira just got a serious upgrade",
+            "We rebranded with a new name, a sharper community homepage, and more ways to share your game journey.",
+          title: "PlayNext is now Playnira",
           body: whatsNewBody(recipient.displayName, request),
           ctaHref: appHref("/dashboard", request),
-          ctaLabel: "See what's new",
+          ctaLabel: "Open Playnira",
         }),
       });
       result.sent += 1;
