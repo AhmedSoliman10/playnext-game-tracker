@@ -440,7 +440,7 @@ export async function getPublicProfileDetails(
     .eq("user_id", profileId)
     .not("status", "in", "(not_interested,skipped)")
     .order("updated_at", { ascending: false })
-    .limit(80);
+    .limit(240);
 
   if (userGamesError) {
     throw new Error("Could not load public library.");
