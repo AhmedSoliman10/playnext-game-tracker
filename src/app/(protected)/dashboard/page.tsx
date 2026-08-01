@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Sparkles } from "lucide-react";
+import { DashboardCommunitySpotlight } from "@/components/community/dashboard-community-spotlight";
 import { GameCard } from "@/components/games/game-card";
 import { GameArtwork } from "@/components/games/game-artwork";
 import { PopularNowCarousel } from "@/components/games/popular-now-carousel";
@@ -15,9 +16,11 @@ import {
   getRecommendations,
 } from "@/lib/recommendations/scoring";
 import { getCurrentUser } from "@/lib/server/current-user";
+import { getCommunityPosts } from "@/lib/server/community-post-service";
 import { getLibraryEntries } from "@/lib/server/library-service";
 import { getRecommendationFeedback } from "@/lib/server/recommendation-feedback-service";
 import { calculateUserStats } from "@/lib/stats/stats";
+import type { CommunityPost } from "@/lib/types";
 
 export const metadata = {
   title: "Dashboard",
@@ -25,8 +28,17 @@ export const metadata = {
 
 export default async function DashboardPage() {
   const user = await getCurrentUser();
-  const entries = user ? await getLibraryEntries(user) : [];
-  const feedback = user ? await getRecommendationFeedback(user) : [];
+  let communityUnavailable = false;
+  const [entries, feedback, communityPosts] = user
+    ? await Promise.all([
+        getLibraryEntries(user),
+        getRecommendationFeedback(user),
+        getCommunityPosts(user, 4).catch(() => {
+          communityUnavailable = true;
+          return [] as CommunityPost[];
+        }),
+      ])
+    : [[], [], [] as CommunityPost[]];
   const stats = calculateUserStats(entries);
   const games = await getCachedPopularGames({ pageSize: 30 });
   const recommendations = getRecommendations(games, entries, 4, feedback);
@@ -75,6 +87,11 @@ export default async function DashboardPage() {
         games={games.slice(0, 12)}
         title="Popular right now"
         description="A quick pulse check from the catalog before the recommendation engine narrows things to your taste."
+      />
+
+      <DashboardCommunitySpotlight
+        posts={communityPosts}
+        unavailable={communityUnavailable}
       />
 
       <div className="grid gap-4 xl:grid-cols-[1.25fr_0.75fr]">

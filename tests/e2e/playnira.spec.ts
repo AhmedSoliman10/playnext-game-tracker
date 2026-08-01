@@ -89,6 +89,12 @@ test("critical game tracking journey works with keyboard-accessible discovery", 
   await page.getByLabel("Password").fill("playnira-demo");
   await page.getByRole("button", { name: "Sign in" }).click();
   await expect(page).toHaveURL(/\/dashboard/);
+  await expect(page.getByText("Community live")).toBeVisible();
+  await expect(
+    page.getByRole("heading", {
+      name: "The feed is part of your game night now.",
+    }),
+  ).toBeVisible();
 
   await Promise.all([
     page.waitForURL(/\/discover/),
