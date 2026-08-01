@@ -4,6 +4,7 @@ import {
   isSupabaseConfigured,
   OAUTH_NEXT_COOKIE,
 } from "@/lib/auth/env";
+import { getDiscordAuthErrorReason } from "@/lib/auth/oauth-errors";
 import { createSupabaseRouteClient } from "@/lib/supabase/route";
 
 function settingsErrorRedirect(request: NextRequest, reason: string) {
@@ -24,8 +25,9 @@ export async function GET(request: NextRequest) {
   }
 
   const requestUrl = new URL(request.url);
+  const nextAfterLink = "/settings?discord_linked=1";
   const fallbackResponse = settingsErrorRedirect(request, "discord");
-  fallbackResponse.cookies.set(OAUTH_NEXT_COOKIE, "/settings", {
+  fallbackResponse.cookies.set(OAUTH_NEXT_COOKIE, nextAfterLink, {
     httpOnly: true,
     sameSite: "lax",
     secure: requestUrl.protocol === "https:",
@@ -45,18 +47,25 @@ export async function GET(request: NextRequest) {
     provider: "discord",
     options: {
       scopes: "identify email",
-      redirectTo: getAuthCallbackUrl(request, "/settings?discord_linked=1"),
+      redirectTo: getAuthCallbackUrl(request),
     },
   });
 
   if (error || !data.url) {
-    const reason =
-      error?.message.toLowerCase().includes("already") ||
-      error?.message.toLowerCase().includes("exists")
-        ? "already-linked"
-        : "discord";
+    const reason = getDiscordAuthErrorReason(
+      [error?.name, error?.message, error?.code, error?.status]
+        .filter(Boolean)
+        .join(" "),
+    );
+    console.warn("Discord identity link could not start", {
+      reason,
+      errorName: error?.name,
+      errorCode: error?.code,
+      errorStatus: error?.status,
+    });
     const response = settingsErrorRedirect(request, reason);
     copyCookies(fallbackResponse, response);
+    response.cookies.delete(OAUTH_NEXT_COOKIE);
     return response;
   }
 

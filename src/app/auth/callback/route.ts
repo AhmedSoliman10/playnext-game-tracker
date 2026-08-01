@@ -4,29 +4,8 @@ import {
   getDiscordProfileFromUser,
   syncDiscordProfileToProfile,
 } from "@/lib/auth/discord-profile";
+import { getDiscordAuthErrorReason } from "@/lib/auth/oauth-errors";
 import { createSupabaseRouteClient } from "@/lib/supabase/route";
-
-function discordErrorReason(value: string) {
-  const normalized = value.toLowerCase();
-  if (
-    normalized.includes("identity_already_exists") ||
-    normalized.includes("already registered") ||
-    normalized.includes("already linked") ||
-    normalized.includes("already exists") ||
-    (normalized.includes("identity") && normalized.includes("exists"))
-  ) {
-    return "already-linked";
-  }
-
-  if (
-    normalized.includes("provider") &&
-    (normalized.includes("disabled") || normalized.includes("not enabled"))
-  ) {
-    return "provider-disabled";
-  }
-
-  return "discord";
-}
 
 function oauthErrorRedirect(
   request: NextRequest,
@@ -57,7 +36,7 @@ export async function GET(request: NextRequest) {
   if (oauthError) {
     return oauthErrorRedirect(
       request,
-      discordErrorReason(
+      getDiscordAuthErrorReason(
         [
           oauthError,
           requestUrl.searchParams.get("error_code"),
@@ -80,11 +59,16 @@ export async function GET(request: NextRequest) {
   const { error } = await supabase!.auth.exchangeCodeForSession(code);
 
   if (error) {
-    return oauthErrorRedirect(
-      request,
-      discordErrorReason([error.name, error.message].join(" ")),
-      next,
+    const reason = getDiscordAuthErrorReason(
+      [error.name, error.message].join(" "),
     );
+    console.warn("OAuth callback code exchange failed", {
+      reason,
+      errorName: error.name,
+      errorCode: error.code,
+      errorStatus: error.status,
+    });
+    return oauthErrorRedirect(request, reason, next);
   }
 
   const {

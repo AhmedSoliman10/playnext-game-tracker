@@ -25,6 +25,10 @@ function discordErrorMessage(reason?: string) {
     return "That Discord account is already connected to another PlayNext account. Sign in with that Discord account first, or use a different Discord account.";
   }
 
+  if (reason === "manual-linking-disabled") {
+    return "Supabase is blocking Discord account linking because Enable Manual Linking is off. In Supabase, open Authentication > Providers and enable Manual Linking, then try again.";
+  }
+
   if (reason === "missing-code") {
     return "Discord did not return a valid authorization code. Please try connecting again.";
   }
@@ -35,6 +39,10 @@ function discordErrorMessage(reason?: string) {
 
   if (reason === "provider-disabled") {
     return "Discord is not enabled in Supabase yet. Turn on the Discord provider, then try again.";
+  }
+
+  if (reason === "redirect-url") {
+    return "Supabase blocked the Discord callback URL. Add https://playnext-game-tracker.vercel.app/auth/callback to the Supabase redirect URLs, then try again.";
   }
 
   if (reason === "supabase") {
