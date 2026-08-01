@@ -222,10 +222,6 @@ export default async function Home() {
           </Link>
         </Button>
       </section>
-
-      <footer className="border-t px-4 py-8 text-center text-sm text-zinc-500">
-        Playnira is an original swipe-based game discovery experience.
-      </footer>
     </main>
   );
 }
