@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthConfirmFlowUrl, isSupabaseConfigured } from "@/lib/auth/env";
 import { clientRateLimitKey, errorResponse, readJson } from "@/lib/server/http";
+import { sendPasswordResetWithAppMailer } from "@/lib/server/password-reset-service";
 import { checkRateLimit } from "@/lib/server/rate-limit";
 import { createSupabaseRouteClient } from "@/lib/supabase/route";
 import { forgotPasswordSchema } from "@/lib/validation/auth";
@@ -58,8 +59,20 @@ export async function POST(request: NextRequest) {
           );
         }
 
+        const fallback = await sendPasswordResetWithAppMailer({
+          email: input.email,
+          request,
+        });
+
+        if (fallback.ok) {
+          return response;
+        }
+
         return NextResponse.json(
-          { error: "We could not start the reset flow. Please try again." },
+          {
+            error:
+              "We could not send the reset email right now. Please try again in a few minutes.",
+          },
           { status: 400 },
         );
       }
