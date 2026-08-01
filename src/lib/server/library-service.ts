@@ -181,7 +181,10 @@ async function ensureGameInSupabase(game: GameSummary, client: SupabaseClient) {
   return data;
 }
 
-async function ensureGameRowBySlug(client: SupabaseClient, slug: string) {
+export async function ensureGameRowBySlug(
+  client: SupabaseClient,
+  slug: string,
+) {
   const existing = await getGameRowBySlug(client, slug);
   if (existing) {
     return existing;

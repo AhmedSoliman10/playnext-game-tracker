@@ -11,6 +11,7 @@ import {
   createSupabaseAdminClient,
   createSupabaseServerClient,
 } from "@/lib/supabase/server";
+import { ensureGameRowBySlug } from "@/lib/server/library-service";
 import type { Database, Json } from "@/lib/supabase/database.types";
 import type {
   CommunityPost,
@@ -511,17 +512,18 @@ async function getGameIdBySlug(gameSlug: string | null) {
     throw new Error("Game attachments need Supabase admin access.");
   }
 
-  const { data, error } = await admin
-    .from("games")
-    .select("id")
-    .eq("slug", gameSlug)
-    .maybeSingle();
-
-  if (error || !data) {
-    throw new Error("Choose a game from the attachment search results.");
+  try {
+    const game = await ensureGameRowBySlug(admin, gameSlug);
+    return game.id;
+  } catch (error) {
+    if (
+      error instanceof Error &&
+      error.message.toLowerCase().includes("could not find")
+    ) {
+      throw new Error("Choose a game from the attachment search results.");
+    }
+    throw error;
   }
-
-  return data.id;
 }
 
 export async function createCommunityPost(

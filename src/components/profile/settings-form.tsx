@@ -27,6 +27,7 @@ export function SettingsForm({
   isPrivate,
   discord,
   discordError,
+  discordSuccess,
   notificationPreferences,
   demoMode,
 }: {
@@ -35,6 +36,7 @@ export function SettingsForm({
   isPrivate: boolean;
   discord?: DiscordProfile | null;
   discordError?: string | null;
+  discordSuccess?: string | null;
   notificationPreferences: NotificationPreferences;
   demoMode: boolean;
 }) {
@@ -380,6 +382,14 @@ export function SettingsForm({
             </div>
           ) : (
             <>
+              {discordSuccess ? (
+                <p
+                  role="status"
+                  className="mt-4 rounded-md border border-emerald-400/40 bg-emerald-400/10 px-3 py-2 text-sm text-emerald-100"
+                >
+                  {discordSuccess}
+                </p>
+              ) : null}
               {discordError ? (
                 <p
                   role="alert"

@@ -1,6 +1,32 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSafeNextPath, OAUTH_NEXT_COOKIE } from "@/lib/auth/env";
+import {
+  getDiscordProfileFromUser,
+  syncDiscordProfileToProfile,
+} from "@/lib/auth/discord-profile";
 import { createSupabaseRouteClient } from "@/lib/supabase/route";
+
+function discordErrorReason(value: string) {
+  const normalized = value.toLowerCase();
+  if (
+    normalized.includes("identity_already_exists") ||
+    normalized.includes("already registered") ||
+    normalized.includes("already linked") ||
+    normalized.includes("already exists") ||
+    (normalized.includes("identity") && normalized.includes("exists"))
+  ) {
+    return "already-linked";
+  }
+
+  if (
+    normalized.includes("provider") &&
+    (normalized.includes("disabled") || normalized.includes("not enabled"))
+  ) {
+    return "provider-disabled";
+  }
+
+  return "discord";
+}
 
 function oauthErrorRedirect(
   request: NextRequest,
@@ -29,7 +55,19 @@ export async function GET(request: NextRequest) {
   );
 
   if (oauthError) {
-    return oauthErrorRedirect(request, "discord", next);
+    return oauthErrorRedirect(
+      request,
+      discordErrorReason(
+        [
+          oauthError,
+          requestUrl.searchParams.get("error_code"),
+          requestUrl.searchParams.get("error_description"),
+        ]
+          .filter(Boolean)
+          .join(" "),
+      ),
+      next,
+    );
   }
 
   if (!code) {
@@ -42,7 +80,19 @@ export async function GET(request: NextRequest) {
   const { error } = await supabase!.auth.exchangeCodeForSession(code);
 
   if (error) {
-    return oauthErrorRedirect(request, "discord", next);
+    return oauthErrorRedirect(
+      request,
+      discordErrorReason([error.name, error.message].join(" ")),
+      next,
+    );
+  }
+
+  const {
+    data: { user },
+  } = await supabase!.auth.getUser();
+  const discord = user ? getDiscordProfileFromUser(user) : null;
+  if (user && discord) {
+    await syncDiscordProfileToProfile(supabase!, user.id, discord);
   }
 
   return response;

@@ -33,6 +33,10 @@ function discordErrorMessage(reason?: string) {
     return "Discord could not be connected. Check the Supabase Discord provider setup and try again.";
   }
 
+  if (reason === "provider-disabled") {
+    return "Discord is not enabled in Supabase yet. Turn on the Discord provider, then try again.";
+  }
+
   if (reason === "supabase") {
     return "Supabase authentication is not configured for this deployment.";
   }
@@ -49,6 +53,10 @@ export default async function SettingsPage({
   const discordError = discordErrorMessage(
     firstParam(rawSearchParams.discord_error),
   );
+  const discordSuccess =
+    firstParam(rawSearchParams.discord_linked) === "1"
+      ? "Discord is connected to your PlayNext profile."
+      : null;
   const user = await getCurrentUser();
   let avatarUrl: string | null = null;
   let displayName = user?.displayName ?? "Player";
@@ -101,6 +109,7 @@ export default async function SettingsPage({
       isPrivate={isPrivate}
       discord={discord}
       discordError={discordError}
+      discordSuccess={discordSuccess}
       notificationPreferences={notificationPreferences}
       demoMode={!isSupabaseConfigured() || Boolean(user?.isDemo)}
     />

@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
     provider: "discord",
     options: {
       scopes: "identify email",
-      redirectTo: getAuthCallbackUrl(request, "/settings"),
+      redirectTo: getAuthCallbackUrl(request, "/settings?discord_linked=1"),
     },
   });
 
