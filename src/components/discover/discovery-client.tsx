@@ -58,6 +58,11 @@ interface PostRatingResult {
   recommendations: RatingRecommendationChoice[];
 }
 
+interface PendingAnswer {
+  gameTitle: string;
+  status: GameStatus;
+}
+
 type SwipeDirection = keyof typeof swipeToStatus;
 
 const swipeHints: Array<{
@@ -109,16 +114,21 @@ export function DiscoveryClient({
         ...initialEntries.map((entry) => entry.game.slug),
       ]),
   );
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const currentIndex = 0;
   const [ratingOpen, setRatingOpen] = useState(false);
   const [ratingGame, setRatingGame] = useState<GameSummary | null>(null);
   const [postRatingResult, setPostRatingResult] =
     useState<PostRatingResult | null>(null);
+  const [pendingAnswer, setPendingAnswer] = useState<PendingAnswer | null>(
+    null,
+  );
   const [busyStatus, setBusyStatus] = useState<GameStatus | null>(null);
+  const [favoriteBusy, setFavoriteBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [drag, setDrag] = useState({ active: false, x: 0, y: 0 });
   const startRef = useRef<{ x: number; y: number } | null>(null);
+  const actionLockRef = useRef(false);
 
   const unansweredGames = useMemo(
     () => candidateGames.filter((game) => !answeredSlugs.has(game.slug)),
@@ -128,10 +138,8 @@ export function DiscoveryClient({
   const displayedGame =
     postRatingResult?.ratedGame ?? ratingGame ?? currentGame;
 
-  function advance() {
-    setCurrentIndex((index) =>
-      Math.min(index, Math.max(0, unansweredGames.length - 2)),
-    );
+  function cancelDrag() {
+    startRef.current = null;
     setDrag({ active: false, x: 0, y: 0 });
   }
 
@@ -143,6 +151,14 @@ export function DiscoveryClient({
     setAnsweredSlugs((current) => {
       const next = new Set(current);
       next.add(gameSlug);
+      return next;
+    });
+  }
+
+  function forgetAnsweredSlug(gameSlug: string) {
+    setAnsweredSlugs((current) => {
+      const next = new Set(current);
+      next.delete(gameSlug);
       return next;
     });
   }
@@ -185,18 +201,30 @@ export function DiscoveryClient({
   }
 
   async function updateStatus(status: GameStatus) {
-    if (!currentGame || postRatingResult) {
+    if (!currentGame || postRatingResult || actionLockRef.current) {
       return;
     }
 
+    const selectedGame = currentGame;
+    actionLockRef.current = true;
     setBusyStatus(status);
+    setPendingAnswer({ gameTitle: selectedGame.title, status });
+    setDrag({ active: false, x: 0, y: 0 });
     setError(null);
     setMessage(null);
+
+    if (status === "played") {
+      setRatingGame(selectedGame);
+      setRatingOpen(true);
+    } else {
+      rememberAnsweredSlug(selectedGame.slug);
+    }
+
     try {
       const response = await fetch("/api/user-games", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ gameSlug: currentGame.slug, status }),
+        body: JSON.stringify({ gameSlug: selectedGame.slug, status }),
       });
       const payload = (await response.json()) as {
         entry?: LibraryEntry | null;
@@ -218,28 +246,32 @@ export function DiscoveryClient({
         if (!payload.entry) {
           throw new Error("Could not start the rating flow.");
         }
-        setRatingGame(currentGame);
-        setRatingOpen(true);
       } else {
         setMessage(
-          `${currentGame.title} moved to ${STATUS_PROMPTS[status].toLowerCase()}.`,
+          `${selectedGame.title} moved to ${STATUS_PROMPTS[status].toLowerCase()}.`,
         );
-        advance();
       }
     } catch (error) {
+      if (status !== "played") {
+        forgetAnsweredSlug(selectedGame.slug);
+      }
       setError(
         error instanceof Error ? error.message : "Could not save your answer.",
       );
     } finally {
       setBusyStatus(null);
+      setPendingAnswer(null);
+      actionLockRef.current = false;
     }
   }
 
   async function toggleFavorite() {
-    if (!currentGame || postRatingResult) {
+    if (!currentGame || postRatingResult || actionLockRef.current) {
       return;
     }
 
+    actionLockRef.current = true;
+    setFavoriteBusy(true);
     setError(null);
     try {
       const response = await fetch("/api/user-games", {
@@ -262,11 +294,14 @@ export function DiscoveryClient({
           ? error.message
           : "Could not favorite this game.",
       );
+    } finally {
+      setFavoriteBusy(false);
+      actionLockRef.current = false;
     }
   }
 
   function onPointerDown(event: React.PointerEvent<HTMLElement>) {
-    if (postRatingResult || ratingOpen) {
+    if (postRatingResult || ratingOpen || actionLockRef.current) {
       return;
     }
 
@@ -283,7 +318,7 @@ export function DiscoveryClient({
   }
 
   function onPointerMove(event: React.PointerEvent<HTMLElement>) {
-    if (!startRef.current || !drag.active) {
+    if (!startRef.current || !drag.active || actionLockRef.current) {
       return;
     }
     setDrag({
@@ -294,7 +329,7 @@ export function DiscoveryClient({
   }
 
   function onPointerUp() {
-    if (postRatingResult || ratingOpen) {
+    if (postRatingResult || ratingOpen || actionLockRef.current) {
       return;
     }
 
@@ -305,7 +340,7 @@ export function DiscoveryClient({
     const absX = Math.abs(drag.x);
     const absY = Math.abs(drag.y);
     const threshold = 90;
-    setDrag({ active: false, x: 0, y: 0 });
+    cancelDrag();
 
     if (absX < threshold && absY < threshold) {
       return;
@@ -319,7 +354,7 @@ export function DiscoveryClient({
   }
 
   function onKeyDown(event: React.KeyboardEvent<HTMLElement>) {
-    if (postRatingResult || ratingOpen) {
+    if (postRatingResult || ratingOpen || actionLockRef.current) {
       return;
     }
 
@@ -394,36 +429,55 @@ export function DiscoveryClient({
           {error}
         </p>
       ) : null}
+      {pendingAnswer ? (
+        <p
+          role="status"
+          className="mb-4 flex items-center gap-2 rounded-md border border-cyan-300/40 bg-cyan-300/10 px-3 py-2 text-sm font-medium text-cyan-100"
+        >
+          <Loader2 className="h-4 w-4 animate-spin" />
+          Saving {STATUS_PROMPTS[pendingAnswer.status].toLowerCase()} for{" "}
+          {pendingAnswer.gameTitle}. One moment.
+        </p>
+      ) : null}
 
       <SwipeHints activeDirection={activeSwipeDirection} />
 
       <article
         tabIndex={0}
         onKeyDown={onKeyDown}
-        onPointerDown={onPointerDown}
-        onPointerMove={onPointerMove}
-        onPointerUp={onPointerUp}
-        onPointerCancel={() => setDrag({ active: false, x: 0, y: 0 })}
+        aria-busy={pendingAnswer ? true : undefined}
         aria-label={`${displayedGame.title}. Swipe right for played, up for backlog, left to skip, or down for currently playing. Buttons are below.`}
         data-testid="discovery-card"
-        className="relative grid touch-none gap-5 rounded-lg border bg-panel-strong p-4 shadow-xl transition-transform focus-visible:outline-2 lg:grid-cols-[minmax(280px,420px)_1fr]"
+        className="relative grid gap-5 rounded-lg border bg-panel-strong p-4 shadow-xl transition-transform focus-visible:outline-2 lg:grid-cols-[minmax(280px,420px)_1fr]"
         style={{ transform }}
       >
-        {activeSwipeDirection ? (
-          <SwipePreview direction={activeSwipeDirection} />
-        ) : null}
         <div className="space-y-3">
-          <GameArtwork
-            src={displayedGame.coverImageUrl}
-            alt={`${displayedGame.title} cover artwork`}
-            priority
-            className="aspect-[3/4] w-full"
-          />
+          <div
+            data-testid="discovery-swipe-surface"
+            onPointerDown={onPointerDown}
+            onPointerMove={onPointerMove}
+            onPointerUp={onPointerUp}
+            onPointerCancel={cancelDrag}
+            className="relative mx-auto w-full max-w-[min(78vw,340px)] touch-none select-none md:max-w-none"
+          >
+            {activeSwipeDirection ? (
+              <SwipePreview direction={activeSwipeDirection} />
+            ) : null}
+            <GameArtwork
+              src={displayedGame.coverImageUrl}
+              alt={`${displayedGame.title} cover artwork`}
+              priority
+              className="aspect-[3/4] max-h-[58vh] w-full md:max-h-none"
+            />
+            <div className="pointer-events-none absolute inset-x-3 bottom-3 rounded-md border border-zinc-700 bg-zinc-950/80 px-3 py-2 text-xs font-semibold text-zinc-300 shadow-lg md:hidden">
+              Drag the cover to answer. Scroll below for details and buttons.
+            </div>
+          </div>
           {displayedGame.screenshots[0] ? (
             <GameArtwork
               src={displayedGame.screenshots[0]}
               alt={`${displayedGame.title} screenshot preview`}
-              className="aspect-video w-full"
+              className="hidden aspect-video w-full md:block"
             />
           ) : null}
         </div>
@@ -451,7 +505,7 @@ export function DiscoveryClient({
                 </span>
               ) : null}
             </div>
-            <p className="max-w-3xl text-base leading-7 text-zinc-300">
+            <p className="line-clamp-3 max-w-3xl text-base leading-7 text-zinc-300 md:line-clamp-none">
               {displayedGame.description}
             </p>
           </div>
@@ -494,7 +548,7 @@ export function DiscoveryClient({
                           : "secondary"
                     }
                     onClick={() => updateStatus(status)}
-                    disabled={busyStatus !== null}
+                    disabled={busyStatus !== null || favoriteBusy}
                   >
                     {busyStatus === status ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
@@ -505,8 +559,18 @@ export function DiscoveryClient({
                   </Button>
                 );
               })}
-              <Button type="button" variant="outline" onClick={toggleFavorite}>
-                <Heart className="h-4 w-4" /> Favorite
+              <Button
+                type="button"
+                variant="outline"
+                onClick={toggleFavorite}
+                disabled={busyStatus !== null || favoriteBusy}
+              >
+                {favoriteBusy ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Heart className="h-4 w-4" />
+                )}{" "}
+                Favorite
               </Button>
               <Button asChild variant="outline">
                 <Link href={`/games/${displayedGame.slug}`}>View details</Link>
