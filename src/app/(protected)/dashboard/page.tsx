@@ -3,6 +3,7 @@ import { Sparkles } from "lucide-react";
 import { GameCard } from "@/components/games/game-card";
 import { GameArtwork } from "@/components/games/game-artwork";
 import { PopularNowCarousel } from "@/components/games/popular-now-carousel";
+import { RatingDetails } from "@/components/ratings/rating-details";
 import { BarList } from "@/components/charts/bar-list";
 import { StatCard } from "@/components/profile/stat-card";
 import { Button } from "@/components/ui/button";
@@ -219,6 +220,13 @@ function DashboardList({
                     </span>
                   </span>
                 </Link>
+                {entry.rating ? (
+                  <RatingDetails
+                    rating={entry.rating}
+                    compact
+                    className="mt-3"
+                  />
+                ) : null}
               </div>
             </li>
           ))}

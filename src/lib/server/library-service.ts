@@ -18,6 +18,7 @@ import {
 import type { Database, Json } from "@/lib/supabase/database.types";
 import type {
   GameRatingBreakdown,
+  GameReview,
   LibraryEntry,
   Rating,
   UserContext,
@@ -35,6 +36,7 @@ import { slugify } from "@/lib/utils";
 export { filterLibraryEntries } from "@/lib/library/filter";
 
 type GameRow = Database["public"]["Tables"]["games"]["Row"];
+type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
 type UserGameRow = Database["public"]["Tables"]["user_games"]["Row"];
 type RatingRow = Database["public"]["Tables"]["ratings"]["Row"];
 type SupabaseClient = NonNullable<
@@ -437,6 +439,98 @@ export async function getGameRatingBreakdown(
   };
 }
 
+export async function getGameReviewsBySlug(
+  slug: string,
+  viewer?: UserContext | null,
+  limit = 12,
+): Promise<GameReview[]> {
+  if (!isSupabaseConfigured()) {
+    return [];
+  }
+
+  const admin = createSupabaseAdminClient();
+  if (!admin) {
+    return [];
+  }
+
+  const { data: gameRow, error: gameError } = await admin
+    .from("games")
+    .select("id")
+    .eq("slug", slug)
+    .maybeSingle();
+
+  if (gameError) {
+    throwDbError(gameError, "Could not load game reviews.");
+  }
+
+  if (!gameRow) {
+    return [];
+  }
+
+  const { data: ratings, error: ratingsError } = await admin
+    .from("ratings")
+    .select("*")
+    .eq("game_id", gameRow.id)
+    .order("updated_at", { ascending: false })
+    .limit(limit);
+
+  if (ratingsError) {
+    throwDbError(ratingsError, "Could not load player reviews.");
+  }
+
+  const ratingRows = ratings ?? [];
+  const profileIds = [...new Set(ratingRows.map((rating) => rating.user_id))];
+  if (!profileIds.length) {
+    return [];
+  }
+
+  const { data: profiles, error: profilesError } = await admin
+    .from("profiles")
+    .select("id, display_name, avatar_url, is_private")
+    .in("id", profileIds);
+
+  if (profilesError) {
+    throwDbError(profilesError, "Could not load review profiles.");
+  }
+
+  const profilesById = new Map(
+    (profiles ?? []).map((profile) => [profile.id, profile]),
+  );
+
+  return ratingRows
+    .map((rating) => {
+      const profile = profilesById.get(rating.user_id);
+      if (!profile || (profile.is_private && profile.id !== viewer?.userId)) {
+        return null;
+      }
+
+      return mapGameReview(rating, profile);
+    })
+    .filter((review): review is GameReview => Boolean(review));
+}
+
+function mapGameReview(
+  rating: RatingRow,
+  profile: Pick<ProfileRow, "id" | "display_name" | "avatar_url">,
+): GameReview {
+  return {
+    id: rating.id,
+    userId: profile.id,
+    displayName: profile.display_name ?? "Player",
+    avatarUrl: profile.avatar_url,
+    overallRating: rating.overall_rating,
+    storyRating: rating.story_rating,
+    gameplayRating: rating.gameplay_rating,
+    visualsRating: rating.visuals_rating,
+    soundtrackRating: rating.soundtrack_rating,
+    difficultyRating: rating.difficulty_rating,
+    wouldRecommend: rating.would_recommend,
+    review: rating.review,
+    createdAt: rating.created_at,
+    updatedAt: rating.updated_at,
+  };
+}
+
 export async function updateUserGameStatus(
   user: UserContext,
   input: StatusUpdateInput,
@@ -655,7 +749,16 @@ export async function saveRating(
     user_id: user.userId,
     game_id: gameRow.id,
     activity_type: "rating_saved",
-    metadata: { overallRating: input.overallRating },
+    metadata: {
+      overallRating: input.overallRating,
+      storyRating: input.storyRating ?? null,
+      gameplayRating: input.gameplayRating ?? null,
+      visualsRating: input.visualsRating ?? null,
+      soundtrackRating: input.soundtrackRating ?? null,
+      difficultyRating: input.difficultyRating ?? null,
+      wouldRecommend: input.wouldRecommend ?? null,
+      review: input.review ?? null,
+    },
   });
 
   const entry = await getLibraryEntryBySlug(user, input.gameSlug);

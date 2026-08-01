@@ -132,6 +132,10 @@ function metadataBoolean(value: Json | undefined) {
   return typeof value === "boolean" ? value : null;
 }
 
+function metadataString(value: Json | undefined) {
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
 function isGameStatus(value: string): value is GameStatus {
   return GAME_STATUSES.includes(value as GameStatus);
 }
@@ -144,6 +148,7 @@ function mapPublicActivity(
   row: ActivityRow,
   profile: PublicProfileRow,
   game: GameRow,
+  rating?: RatingRow,
 ): PublicActivityItem {
   const metadata = metadataObject(row.metadata);
 
@@ -157,7 +162,20 @@ function mapPublicActivity(
     gameCoverImageUrl: game.cover_image_url,
     activityType: row.activity_type,
     status: metadataStatus(metadata.status),
-    overallRating: metadataNumber(metadata.overallRating),
+    overallRating:
+      rating?.overall_rating ?? metadataNumber(metadata.overallRating),
+    storyRating: rating?.story_rating ?? metadataNumber(metadata.storyRating),
+    gameplayRating:
+      rating?.gameplay_rating ?? metadataNumber(metadata.gameplayRating),
+    visualsRating:
+      rating?.visuals_rating ?? metadataNumber(metadata.visualsRating),
+    soundtrackRating:
+      rating?.soundtrack_rating ?? metadataNumber(metadata.soundtrackRating),
+    difficultyRating:
+      rating?.difficulty_rating ?? metadataNumber(metadata.difficultyRating),
+    wouldRecommend:
+      rating?.would_recommend ?? metadataBoolean(metadata.wouldRecommend),
+    review: rating?.review ?? metadataString(metadata.review),
     isFavorite: metadataBoolean(metadata.isFavorite),
     createdAt: row.created_at,
   };
@@ -338,13 +356,34 @@ export async function getCommunityActivityFeed(
     visibleProfiles.map((profile) => [profile.id, profile]),
   );
   const gamesById = new Map((games ?? []).map((game) => [game.id, game]));
+  const { data: ratings, error: ratingsError } = await admin
+    .from("ratings")
+    .select("*")
+    .in("game_id", gameIds)
+    .in("user_id", profileIds);
+
+  if (ratingsError) {
+    throw new Error("Could not load public rating details.");
+  }
+
+  const ratingsByUserAndGameId = new Map(
+    (ratings ?? []).map((rating) => [
+      `${rating.user_id}:${rating.game_id}`,
+      rating,
+    ]),
+  );
 
   return rows
     .map((row) => {
       const profile = profilesById.get(row.user_id);
       const game = gamesById.get(row.game_id);
+      const rating = ratingsByUserAndGameId.get(
+        `${row.user_id}:${row.game_id}`,
+      );
 
-      return profile && game ? mapPublicActivity(row, profile, game) : null;
+      return profile && game
+        ? mapPublicActivity(row, profile, game, rating)
+        : null;
     })
     .filter((item): item is PublicActivityItem => Boolean(item));
 }

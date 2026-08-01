@@ -10,6 +10,7 @@ import {
 import Link from "next/link";
 import { useState } from "react";
 import { GameArtwork } from "@/components/games/game-artwork";
+import { RatingDetails } from "@/components/ratings/rating-details";
 import { Button } from "@/components/ui/button";
 import type { PublicActivityItem, PublicProfile } from "@/lib/types";
 import { formatCompactDate } from "@/lib/utils";
@@ -135,6 +136,9 @@ export function CommunityClient({
                       </Link>
                       .
                     </p>
+                    {item.activityType === "rating_saved" ? (
+                      <RatingDetails rating={item} compact className="mt-3" />
+                    ) : null}
                     <p className="mt-2 text-xs text-zinc-500">
                       {formatCompactDate(item.createdAt)}
                     </p>

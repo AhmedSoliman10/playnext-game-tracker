@@ -109,6 +109,23 @@ export interface GameRatingBreakdown {
   distribution: Array<{ label: string; value: number }>;
 }
 
+export interface GameReview {
+  id: string;
+  userId: string;
+  displayName: string;
+  avatarUrl?: string | null;
+  overallRating: number;
+  storyRating?: number | null;
+  gameplayRating?: number | null;
+  visualsRating?: number | null;
+  soundtrackRating?: number | null;
+  difficultyRating?: number | null;
+  wouldRecommend?: boolean | null;
+  review?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface PublicProfile {
   id: string;
   displayName: string;
@@ -132,6 +149,13 @@ export interface PublicActivityItem {
   activityType: "status_changed" | "rating_saved" | "favorite_changed";
   status?: GameStatus | null;
   overallRating?: number | null;
+  storyRating?: number | null;
+  gameplayRating?: number | null;
+  visualsRating?: number | null;
+  soundtrackRating?: number | null;
+  difficultyRating?: number | null;
+  wouldRecommend?: boolean | null;
+  review?: string | null;
   isFavorite?: boolean | null;
   createdAt: string;
 }

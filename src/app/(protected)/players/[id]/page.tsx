@@ -4,6 +4,7 @@ import { Lock, UserRound } from "lucide-react";
 import { BarList } from "@/components/charts/bar-list";
 import { GameArtwork } from "@/components/games/game-artwork";
 import { StatCard } from "@/components/profile/stat-card";
+import { RatingDetails } from "@/components/ratings/rating-details";
 import { Button } from "@/components/ui/button";
 import { getPublicProfileDetails } from "@/lib/server/community-service";
 import { getCurrentUser } from "@/lib/server/current-user";
@@ -138,7 +139,7 @@ export default async function PlayerProfilePage({
       </section>
 
       <section className="rounded-lg border bg-panel p-5">
-        <h2 className="mb-4 text-2xl font-bold">Recent activity</h2>
+        <h2 className="mb-4 text-2xl font-bold">Recent reviews and activity</h2>
         {recentActivity.length ? (
           <ul className="space-y-3">
             {recentActivity.map((entry) => (
@@ -146,26 +147,39 @@ export default async function PlayerProfilePage({
                 key={entry.game.slug}
                 className="border-b pb-3 last:border-b-0 last:pb-0"
               >
-                <Link
-                  href={`/games/${entry.game.slug}`}
-                  className="flex items-center justify-between gap-4 rounded-md hover:text-cyan-200 focus-visible:outline-2"
-                >
+                <div className="flex gap-4">
                   <span className="flex min-w-0 items-center gap-3">
-                    <GameArtwork
-                      src={entry.game.coverImageUrl}
-                      alt={`${entry.game.title} cover`}
-                      className="h-20 w-14 shrink-0 rounded-sm"
-                    />
-                    <span className="line-clamp-2 font-semibold">
+                    <Link
+                      href={`/games/${entry.game.slug}`}
+                      className="shrink-0 rounded-sm focus-visible:outline-2"
+                    >
+                      <GameArtwork
+                        src={entry.game.coverImageUrl}
+                        alt={`${entry.game.title} cover`}
+                        className="h-20 w-14 rounded-sm"
+                      />
+                    </Link>
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <Link
+                      href={`/games/${entry.game.slug}`}
+                      className="line-clamp-2 font-semibold hover:text-cyan-200 focus-visible:outline-2"
+                    >
                       {entry.game.title}
-                    </span>
-                  </span>
-                  <span className="shrink-0 text-sm text-zinc-400">
-                    {entry.rating
-                      ? `Rated ${entry.rating.overallRating}/10`
-                      : entry.userGame.status.replaceAll("_", " ")}
-                  </span>
-                </Link>
+                    </Link>
+                    {entry.rating ? (
+                      <RatingDetails
+                        rating={entry.rating}
+                        compact
+                        className="mt-2"
+                      />
+                    ) : (
+                      <p className="mt-1 text-sm capitalize text-zinc-400">
+                        {entry.userGame.status.replaceAll("_", " ")}
+                      </p>
+                    )}
+                  </div>
+                </div>
               </li>
             ))}
           </ul>

@@ -2,15 +2,21 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Calendar, Clock3, Gamepad2, Star } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Calendar, Clock3, Gamepad2, Star, UserRound } from "lucide-react";
 import { BarList } from "@/components/charts/bar-list";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { GameArtwork } from "@/components/games/game-artwork";
 import { RatingDialog } from "@/components/games/rating-dialog";
+import { RatingDetails } from "@/components/ratings/rating-details";
 import { StatusButtons } from "@/components/games/status-buttons";
 import type { GameDetails, GameSummary } from "@/lib/games/types";
-import type { GameRatingBreakdown, LibraryEntry } from "@/lib/types";
+import type {
+  GameRatingBreakdown,
+  GameReview,
+  LibraryEntry,
+} from "@/lib/types";
 import { formatCompactDate } from "@/lib/utils";
 
 export function GameDetailsClient({
@@ -18,12 +24,15 @@ export function GameDetailsClient({
   initialEntry,
   similarGames,
   ratingBreakdown,
+  playerReviews,
 }: {
   game: GameDetails;
   initialEntry?: LibraryEntry | null;
   similarGames: GameSummary[];
   ratingBreakdown: GameRatingBreakdown;
+  playerReviews: GameReview[];
 }) {
+  const router = useRouter();
   const [entry, setEntry] = useState<LibraryEntry | null>(initialEntry ?? null);
   const [ratingOpen, setRatingOpen] = useState(false);
 
@@ -193,12 +202,66 @@ export function GameDetailsClient({
         </div>
       </section>
 
-      {entry?.rating?.review ? (
+      {entry?.rating ? (
         <section className="rounded-lg border bg-panel p-5">
-          <h2 className="mb-2 text-2xl font-bold">Your review</h2>
-          <p className="leading-7 text-zinc-300">{entry.rating.review}</p>
+          <h2 className="mb-3 text-2xl font-bold">Your rating details</h2>
+          <RatingDetails rating={entry.rating} />
         </section>
       ) : null}
+
+      <section className="space-y-4">
+        <div className="flex flex-col justify-between gap-2 sm:flex-row sm:items-end">
+          <div>
+            <h2 className="text-2xl font-bold">Player reviews</h2>
+            <p className="mt-1 text-sm text-zinc-400">
+              Comments and score breakdowns from public PlayNext profiles.
+            </p>
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setRatingOpen(true)}
+          >
+            {entry?.rating ? "Edit your review" : "Write a review"}
+          </Button>
+        </div>
+        {playerReviews.length ? (
+          <div className="grid gap-4 lg:grid-cols-2">
+            {playerReviews.map((review) => (
+              <article
+                key={review.id}
+                className="rounded-lg border bg-panel p-4"
+              >
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <Link
+                    href={`/players/${review.userId}`}
+                    className="flex min-w-0 items-center gap-3 rounded-md hover:text-cyan-200 focus-visible:outline-2"
+                  >
+                    <ReviewAvatar
+                      src={review.avatarUrl}
+                      name={review.displayName}
+                    />
+                    <span className="min-w-0">
+                      <span className="block truncate font-semibold">
+                        {review.displayName}
+                      </span>
+                      <span className="block text-xs text-zinc-500">
+                        {formatCompactDate(review.updatedAt)}
+                      </span>
+                    </span>
+                  </Link>
+                </div>
+                <RatingDetails rating={review} />
+              </article>
+            ))}
+          </div>
+        ) : (
+          <div className="rounded-lg border bg-panel p-5 text-zinc-400">
+            No public reviews yet. Your rating can be the first one players see
+            here.
+          </div>
+        )}
+      </section>
 
       {game.screenshots.length ? (
         <section className="space-y-4">
@@ -246,7 +309,10 @@ export function GameDetailsClient({
         game={game}
         open={ratingOpen}
         onOpenChange={setRatingOpen}
-        onSaved={(savedEntry) => setEntry(savedEntry)}
+        onSaved={(savedEntry) => {
+          setEntry(savedEntry);
+          router.refresh();
+        }}
       />
     </section>
   );
@@ -269,5 +335,24 @@ function InfoPanel({ label, value }: { label: string; value: string }) {
         {value.replaceAll("_", " ")}
       </p>
     </div>
+  );
+}
+
+function ReviewAvatar({ src, name }: { src?: string | null; name: string }) {
+  if (src) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={src}
+        alt={`${name} avatar`}
+        className="h-12 w-12 rounded-md border object-cover"
+      />
+    );
+  }
+
+  return (
+    <span className="inline-flex h-12 w-12 items-center justify-center rounded-md border bg-zinc-950 text-zinc-400">
+      <UserRound className="h-5 w-5" aria-hidden />
+    </span>
   );
 }

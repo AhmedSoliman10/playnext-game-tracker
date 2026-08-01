@@ -168,7 +168,13 @@ export function applyRatingSave(
   state.activities.unshift(
     activity(game, "rating_saved", {
       overallRating: values.overallRating,
+      storyRating: values.storyRating ?? null,
+      gameplayRating: values.gameplayRating ?? null,
+      visualsRating: values.visualsRating ?? null,
+      soundtrackRating: values.soundtrackRating ?? null,
+      difficultyRating: values.difficultyRating ?? null,
       wouldRecommend: values.wouldRecommend ?? null,
+      review: values.review ?? null,
     }),
   );
 

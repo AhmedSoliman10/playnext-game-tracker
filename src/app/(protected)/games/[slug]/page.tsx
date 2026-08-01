@@ -6,6 +6,7 @@ import {
 } from "@/lib/games/cached-provider";
 import { getCurrentUser } from "@/lib/server/current-user";
 import {
+  getGameReviewsBySlug,
   getGameRatingBreakdown,
   getLibraryEntryBySlug,
 } from "@/lib/server/library-service";
@@ -35,11 +36,13 @@ export default async function GameDetailsPage({
   }
 
   const user = await getCurrentUser();
-  const [entry, similarGames, ratingBreakdown] = await Promise.all([
-    user ? getLibraryEntryBySlug(user, slug) : Promise.resolve(null),
-    getCachedSimilarGames(game.id),
-    getGameRatingBreakdown(slug),
-  ]);
+  const [entry, similarGames, ratingBreakdown, playerReviews] =
+    await Promise.all([
+      user ? getLibraryEntryBySlug(user, slug) : Promise.resolve(null),
+      getCachedSimilarGames(game.id),
+      getGameRatingBreakdown(slug),
+      getGameReviewsBySlug(slug, user),
+    ]);
 
   return (
     <GameDetailsClient
@@ -47,6 +50,7 @@ export default async function GameDetailsPage({
       initialEntry={entry}
       similarGames={similarGames}
       ratingBreakdown={ratingBreakdown}
+      playerReviews={playerReviews}
     />
   );
 }
