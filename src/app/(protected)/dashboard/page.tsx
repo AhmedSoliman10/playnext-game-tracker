@@ -11,13 +11,14 @@ import { StatCard } from "@/components/profile/stat-card";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { getCachedPopularGames } from "@/lib/games/cached-provider";
-import {
-  getGameIdentityKeys,
-  getRecommendations,
-} from "@/lib/recommendations/scoring";
+import { getGameIdentityKeys } from "@/lib/recommendations/scoring";
 import { getCurrentUser } from "@/lib/server/current-user";
 import { getCommunityPosts } from "@/lib/server/community-post-service";
-import { getLibraryEntries } from "@/lib/server/library-service";
+import { getRecommendationBatch } from "@/lib/server/discovery-candidate-service";
+import {
+  getDiscoveryInteractionSlugs,
+  getLibraryEntries,
+} from "@/lib/server/library-service";
 import { getRecommendationFeedback } from "@/lib/server/recommendation-feedback-service";
 import { calculateUserStats } from "@/lib/stats/stats";
 import type { CommunityPost } from "@/lib/types";
@@ -29,19 +30,27 @@ export const metadata = {
 export default async function DashboardPage() {
   const user = await getCurrentUser();
   let communityUnavailable = false;
-  const [entries, feedback, communityPosts] = user
+  const [entries, feedback, discoverySlugs, communityPosts] = user
     ? await Promise.all([
         getLibraryEntries(user),
         getRecommendationFeedback(user),
+        getDiscoveryInteractionSlugs(user),
         getCommunityPosts(user, 4).catch(() => {
           communityUnavailable = true;
           return [] as CommunityPost[];
         }),
       ])
-    : [[], [], [] as CommunityPost[]];
+    : [[], [], [], [] as CommunityPost[]];
   const stats = calculateUserStats(entries);
   const games = await getCachedPopularGames({ pageSize: 30 });
-  const recommendations = getRecommendations(games, entries, 4, feedback);
+  const recommendations = user
+    ? await getRecommendationBatch({
+        entries,
+        discoverySlugs,
+        feedback,
+        limit: 4,
+      })
+    : [];
   const entriesByGameKey = new Map<string, (typeof entries)[number]>();
   for (const entry of entries) {
     for (const key of getGameIdentityKeys(entry.game)) {
@@ -130,10 +139,10 @@ export default async function DashboardPage() {
           ) : (
             <EmptyState
               icon={Sparkles}
-              title="Recommendations need a little taste data."
-              description="Rate a few played games or mark titles as want-to-play so Playnira can rank your next picks with better context."
+              title="Playnira could not load recommendations right now."
+              description="The game provider may be slow. Discovery and search can still help you keep exploring."
               actionHref="/discover"
-              actionLabel="Start discovery"
+              actionLabel="Open discovery"
               secondaryHref="/search"
               secondaryLabel="Search catalog"
             />

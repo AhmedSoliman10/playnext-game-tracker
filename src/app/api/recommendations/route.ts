@@ -1,14 +1,6 @@
 import { NextResponse } from "next/server";
-import type { GameSummary } from "@/lib/games/types";
-import { getCachedPopularGames } from "@/lib/games/cached-provider";
-import {
-  getGameIdentityKeys,
-  getGameSlugIdentityKey,
-  getRecommendations,
-  isGameInIdentitySet,
-  type Recommendation,
-} from "@/lib/recommendations/scoring";
 import { getCurrentUser } from "@/lib/server/current-user";
+import { getRecommendationBatch } from "@/lib/server/discovery-candidate-service";
 import { errorResponse } from "@/lib/server/http";
 import {
   getDiscoveryInteractionSlugs,
@@ -29,56 +21,16 @@ export async function GET() {
     const entries = await getLibraryEntries(user);
     const feedback = await getRecommendationFeedback(user);
     const discoverySlugs = await getDiscoveryInteractionSlugs(user);
-    const hasTasteSignal = entries.some(
-      (entry) =>
-        (entry.rating?.overallRating ?? 0) > 0 || entry.userGame.isFavorite,
-    );
-    const page = hasTasteSignal ? 1 : Math.floor(Math.random() * 6) + 1;
-    let games = await getCachedPopularGames({ page, pageSize: 75 });
-    if (games.length === 0 && page !== 1) {
-      games = await getCachedPopularGames({
-        page: 1,
-        pageSize: 75,
-      });
-    }
-
-    const answeredGameKeys = new Set(
-      discoverySlugs.map((slug) => getGameSlugIdentityKey(slug)),
-    );
-    for (const entry of entries) {
-      for (const key of getGameIdentityKeys(entry.game)) {
-        answeredGameKeys.add(key);
-      }
-    }
-    games = games.filter(
-      (game) => !isGameInIdentitySet(game, answeredGameKeys),
-    );
 
     return NextResponse.json({
-      recommendations: hasTasteSignal
-        ? getRecommendations(games, entries, 8, feedback)
-        : getExploratoryRecommendations(games, answeredGameKeys, 8),
+      recommendations: await getRecommendationBatch({
+        entries,
+        discoverySlugs,
+        feedback,
+        limit: 8,
+      }),
     });
   } catch (error) {
     return errorResponse(error, "Could not load recommendations.");
   }
-}
-
-function getExploratoryRecommendations(
-  games: GameSummary[],
-  answeredGameKeys: Set<string>,
-  limit: number,
-): Recommendation[] {
-  return shuffleGames(games)
-    .filter((game) => !isGameInIdentitySet(game, answeredGameKeys))
-    .slice(0, limit)
-    .map((game) => ({
-      game,
-      score: 0,
-      reasons: ["A fresh discovery pick while Playnira learns your taste."],
-    }));
-}
-
-function shuffleGames(games: GameSummary[]) {
-  return [...games].sort(() => Math.random() - 0.5);
 }

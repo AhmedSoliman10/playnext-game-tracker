@@ -1,17 +1,11 @@
 import { DiscoveryClient } from "@/components/discover/discovery-client";
-import type { GameSummary } from "@/lib/games/types";
-import { getCachedPopularGames } from "@/lib/games/cached-provider";
-import {
-  getGameIdentityKeys,
-  getGameSlugIdentityKey,
-  getRecommendations,
-  isGameInIdentitySet,
-} from "@/lib/recommendations/scoring";
+import { getDiscoveryCandidateBatch } from "@/lib/server/discovery-candidate-service";
 import { getCurrentUser } from "@/lib/server/current-user";
 import {
   getDiscoveryInteractionSlugs,
   getLibraryEntries,
 } from "@/lib/server/library-service";
+import { getRecommendationFeedback } from "@/lib/server/recommendation-feedback-service";
 
 export const metadata = {
   title: "Discover",
@@ -21,67 +15,19 @@ export default async function DiscoverPage() {
   const user = await getCurrentUser();
   const entries = user ? await getLibraryEntries(user) : [];
   const discoverySlugs = user ? await getDiscoveryInteractionSlugs(user) : [];
-  const games = await getDiscoveryGames(entries, discoverySlugs);
+  const feedback = user ? await getRecommendationFeedback(user) : [];
+  const discoveryBatch = await getDiscoveryCandidateBatch({
+    entries,
+    discoverySlugs,
+    feedback,
+  });
 
   return (
     <DiscoveryClient
-      games={games}
+      games={discoveryBatch.games}
       initialEntries={entries}
       initialAnsweredSlugs={discoverySlugs}
+      initialNextCursor={discoveryBatch.nextCursor}
     />
   );
-}
-
-async function getDiscoveryGames(
-  entries: Awaited<ReturnType<typeof getLibraryEntries>>,
-  discoverySlugs: string[],
-) {
-  const hasTasteSignal = entries.some(
-    (entry) =>
-      (entry.rating?.overallRating ?? 0) > 0 || entry.userGame.isFavorite,
-  );
-  const exploratoryPage = hasTasteSignal
-    ? 1
-    : Math.floor(Math.random() * 6) + 1;
-  const candidates = await loadPopularGames(exploratoryPage);
-  const answeredGameKeys = new Set(
-    discoverySlugs.map((slug) => getGameSlugIdentityKey(slug)),
-  );
-  for (const entry of entries) {
-    for (const key of getGameIdentityKeys(entry.game)) {
-      answeredGameKeys.add(key);
-    }
-  }
-  const unansweredCandidates = candidates.filter(
-    (game) => !isGameInIdentitySet(game, answeredGameKeys),
-  );
-
-  if (!hasTasteSignal) {
-    return shuffleGames(unansweredCandidates).slice(0, 50);
-  }
-
-  const recommendedGames = getRecommendations(
-    unansweredCandidates,
-    entries,
-    50,
-  ).map((recommendation) => recommendation.game);
-  const recommendedSlugs = new Set(recommendedGames.map((game) => game.slug));
-  const exploratoryFill = shuffleGames(
-    unansweredCandidates.filter((game) => !recommendedSlugs.has(game.slug)),
-  );
-
-  return [...recommendedGames, ...exploratoryFill].slice(0, 50);
-
-  async function loadPopularGames(page: number): Promise<GameSummary[]> {
-    const games = await getCachedPopularGames({ page, pageSize: 75 });
-    if (games.length > 0 || page === 1) {
-      return games;
-    }
-
-    return getCachedPopularGames({ page: 1, pageSize: 75 });
-  }
-}
-
-function shuffleGames(games: GameSummary[]) {
-  return [...games].sort(() => Math.random() - 0.5);
 }

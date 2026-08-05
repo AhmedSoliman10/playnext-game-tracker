@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import type React from "react";
-import { useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowDown,
   ArrowLeft,
@@ -101,12 +101,15 @@ export function DiscoveryClient({
   games,
   initialEntries,
   initialAnsweredSlugs,
+  initialNextCursor,
 }: {
   games: GameSummary[];
   initialEntries: LibraryEntry[];
   initialAnsweredSlugs: string[];
+  initialNextCursor: number;
 }) {
   const [candidateGames, setCandidateGames] = useState(games);
+  const [nextCursor, setNextCursor] = useState(initialNextCursor);
   const [answeredSlugs, setAnsweredSlugs] = useState(
     () =>
       new Set([
@@ -123,6 +126,8 @@ export function DiscoveryClient({
     null,
   );
   const [busyStatus, setBusyStatus] = useState<GameStatus | null>(null);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [discoveryExhausted, setDiscoveryExhausted] = useState(false);
   const [favoriteBusy, setFavoriteBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -137,6 +142,90 @@ export function DiscoveryClient({
   const currentGame = unansweredGames[currentIndex] ?? null;
   const displayedGame =
     postRatingResult?.ratedGame ?? ratingGame ?? currentGame;
+
+  const loadMoreDiscoveryGames = useCallback(
+    async (force = false) => {
+      if (loadingMore || (!force && discoveryExhausted)) {
+        return;
+      }
+
+      setLoadingMore(true);
+      setDiscoveryExhausted(false);
+      setError(null);
+      try {
+        const response = await fetch(`/api/discover?cursor=${nextCursor}`);
+        const payload = (await response.json()) as {
+          games?: GameSummary[];
+          nextCursor?: number;
+          error?: string;
+        };
+
+        if (!response.ok) {
+          throw new Error(payload.error ?? "Could not load more games.");
+        }
+
+        const existingSlugs = new Set([
+          ...candidateGames.map((game) => game.slug),
+          ...answeredSlugs,
+        ]);
+        const incomingGames = (payload.games ?? []).filter((game) => {
+          if (existingSlugs.has(game.slug)) {
+            return false;
+          }
+          existingSlugs.add(game.slug);
+          return true;
+        });
+
+        if (incomingGames.length) {
+          setCandidateGames((current) => [...current, ...incomingGames]);
+          setDiscoveryExhausted(false);
+        } else if ((payload.games ?? []).length === 0) {
+          setDiscoveryExhausted(true);
+        }
+
+        setNextCursor(payload.nextCursor ?? nextCursor + 4);
+      } catch (error) {
+        setDiscoveryExhausted(true);
+        setError(
+          error instanceof Error
+            ? error.message
+            : "Could not load more discovery games.",
+        );
+      } finally {
+        setLoadingMore(false);
+      }
+    },
+    [
+      answeredSlugs,
+      candidateGames,
+      discoveryExhausted,
+      loadingMore,
+      nextCursor,
+    ],
+  );
+
+  useEffect(() => {
+    if (
+      postRatingResult ||
+      ratingOpen ||
+      unansweredGames.length > 5 ||
+      discoveryExhausted
+    ) {
+      return;
+    }
+
+    const timeout = window.setTimeout(() => {
+      void loadMoreDiscoveryGames();
+    }, 0);
+
+    return () => window.clearTimeout(timeout);
+  }, [
+    discoveryExhausted,
+    loadMoreDiscoveryGames,
+    postRatingResult,
+    ratingOpen,
+    unansweredGames.length,
+  ]);
 
   function cancelDrag() {
     startRef.current = null;
@@ -374,20 +463,32 @@ export function DiscoveryClient({
   if (!displayedGame) {
     return (
       <section className="mx-auto flex max-w-2xl flex-col items-center justify-center gap-5 rounded-lg border bg-panel p-8 text-center">
-        <SparkleEmpty />
+        {loadingMore ? (
+          <Loader2 className="h-10 w-10 animate-spin text-cyan-200" />
+        ) : (
+          <SparkleEmpty />
+        )}
         <h1 className="text-3xl font-bold">
-          You answered every game in this batch.
+          {loadingMore
+            ? "Finding more games for you..."
+            : "Playnira could not load another set yet."}
         </h1>
         <p className="text-zinc-400">
-          Search for a specific title or check the dashboard for recommendations
-          based on your library.
+          {loadingMore
+            ? "We are checking deeper in the catalog so discovery can keep going."
+            : "Try again in a moment, or search for a title while the provider catches up."}
         </p>
         <div className="flex gap-3">
+          <Button
+            type="button"
+            onClick={() => void loadMoreDiscoveryGames(true)}
+            disabled={loadingMore}
+          >
+            {loadingMore ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+            Load more games
+          </Button>
           <Button asChild>
             <Link href="/search">Open search</Link>
-          </Button>
-          <Button asChild variant="secondary">
-            <Link href="/dashboard">Dashboard</Link>
           </Button>
         </div>
       </section>
@@ -409,7 +510,7 @@ export function DiscoveryClient({
             ? "Recommendation ready"
             : `${Math.min(currentIndex + 1, unansweredGames.length)} of ${
                 unansweredGames.length
-              }`}
+              }${loadingMore ? " · loading more" : ""}`}
         </p>
       </div>
 
@@ -437,6 +538,15 @@ export function DiscoveryClient({
           <Loader2 className="h-4 w-4 animate-spin" />
           Saving {STATUS_PROMPTS[pendingAnswer.status].toLowerCase()} for{" "}
           {pendingAnswer.gameTitle}. One moment.
+        </p>
+      ) : null}
+      {loadingMore && displayedGame ? (
+        <p
+          role="status"
+          className="mb-4 flex items-center gap-2 rounded-md border border-cyan-300/40 bg-cyan-300/10 px-3 py-2 text-sm font-medium text-cyan-100"
+        >
+          <Loader2 className="h-4 w-4 animate-spin" />
+          Loading more discovery cards in the background.
         </p>
       ) : null}
 
